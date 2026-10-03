@@ -1,4 +1,4 @@
-"""Multi-context supervision format and coverage (PLAN.md 3.2, 6; SETUP.md 11).
+"""Multi-context supervision format and coverage (PLAN.md 3.2, 6, 3.3).
 
 The non-negotiable property is that a sample appears in many *different*
 contexts. These tests guard the format, the coverage guarantees, and the
@@ -34,7 +34,7 @@ def test_dataset_rejects_out_of_range_sample_ids(store):
 
 
 def test_coverage_meets_the_multi_context_requirement(context_dataset):
-    """SETUP.md 11 recommends 20-100 contexts per sample; the fixture targets 10
+    """PLAN.md 3.3 recommends 20-100 contexts per sample; the fixture targets 10
     to stay fast, so the test asserts the generator hit its own target."""
     rep = context_dataset.coverage_report(min_contexts=10)
     assert rep["uncovered_samples"] == 0
@@ -64,7 +64,6 @@ def test_same_sample_gets_different_effects_in_different_contexts(context_datase
 
 
 def test_collate_pads_and_masks_correctly(store):
-    spec = store.metadata_spec
     rng = np.random.default_rng(0)
     recs = [
         ContextRecord(i, f"c{i%2}", rng.choice(len(store), size=n, replace=False),

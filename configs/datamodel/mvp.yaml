@@ -1,5 +1,5 @@
-# The MVP data model of SETUP.md 13 / PLAN.md 4.
-latent_dim: 32           # swept over 8/16/32/64/128 in SETUP.md 14
+# The MVP data model of PLAN.md 4 / PLAN.md 4.
+latent_dim: 32           # swept over 8/16/32/64/128 in PLAN.md 6
 encoder:
   backbone: mlp          # mlp | gru | transformer
   hidden: [128, 128]

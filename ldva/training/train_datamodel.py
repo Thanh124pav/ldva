@@ -57,6 +57,15 @@ class TrainConfig:
     wandb: bool = False
     wandb_project: str = "ldva"
     wandb_run_name: str | None = None
+    #: attach to a run the CALLER already started instead of creating one.
+    #: The acquisition loop retrains the data model every round inside a single
+    #: per-(method, seed) run; without this, each round would call
+    #: `wandb.init(reinit=True)` and then `finish()`, which ends the parent run
+    #: and splits one acquisition curve across a dozen orphan runs.
+    wandb_attach: bool = False
+    #: namespace for the attached metrics, so per-epoch data-model losses do
+    #: not collide with the loop's per-round metrics
+    wandb_prefix: str = ""
 
 
 class DataModelTrainer:
@@ -82,7 +91,7 @@ class DataModelTrainer:
             self.model.parameters(), lr=self.cfg.lr, weight_decay=self.cfg.weight_decay
         )
         # the per-sample scalar baseline is fitted on TRAIN contexts so that it
-        # is scored out-of-sample, exactly like the model (SETUP.md 30 crit. 1)
+        # is scored out-of-sample, exactly like the model (PLAN.md 14 crit. 1)
         self._scalar_fit = fit_per_sample_scalar(
             np.concatenate([r.batch_sample_ids for r in train_ds.records]),
             np.concatenate(
@@ -98,6 +107,9 @@ class DataModelTrainer:
         self._best_state: dict | None = None
         self._best_value = -np.inf if self.cfg.select_mode == "max" else np.inf
         self._wandb = None
+        #: True when we created the run and are therefore responsible for
+        #: finishing it; False when attached to a caller's run
+        self._owns_wandb = False
         if self.cfg.wandb:
             self._init_wandb()
 
@@ -105,12 +117,18 @@ class DataModelTrainer:
         try:
             import wandb
 
+            if self.cfg.wandb_attach:
+                # use whatever run the caller started; never create or end one
+                self._wandb = wandb.run
+                self._owns_wandb = False
+                return
             self._wandb = wandb.init(
                 project=self.cfg.wandb_project,
                 name=self.cfg.wandb_run_name,
                 config={"train": self.cfg.__dict__, "weights": self.cfg.weights.as_dict()},
                 reinit=True,
             )
+            self._owns_wandb = True
         except Exception as e:  # logging must never break training
             print(f"[ldva] wandb disabled: {e}")
             self._wandb = None
@@ -157,7 +175,6 @@ class DataModelTrainer:
         mask = batch["mask"]
         n_ctx, n_max = mask.shape
         keep = mask.clone()
-        counts = mask.sum(1)
         for c in range(n_ctx):
             members = torch.nonzero(mask[c]).flatten()
             n_drop = int(self.cfg.smooth_drop_frac * len(members))
@@ -209,14 +226,33 @@ class DataModelTrainer:
                     row.update({f"val/{k}": v for k, v in val.items()})
                     self._maybe_select(val)
             self.history.append(row)
-            if self._wandb is not None:
-                self._wandb.log(row, step=epoch)
+            self._log_row(row, epoch)
 
         if self._best_state is not None:
             self.model.load_state_dict(self._best_state)
-        if self._wandb is not None:
+        if self._wandb is not None and self._owns_wandb:
             self._wandb.finish()
         return self.history
+
+    def _log_row(self, row: dict, epoch: int) -> None:
+        """Send one epoch's metrics to wandb, if logging is on.
+
+        An attached run does not pass `step`: its step axis belongs to the
+        caller (the acquisition round), and forcing the epoch number onto it
+        would rewind the parent's step counter and silently drop the rest of
+        the loop's metrics.
+        """
+        if self._wandb is None:
+            return
+        try:
+            pre = self.cfg.wandb_prefix
+            out = {f"{pre}{k}": v for k, v in row.items()} if pre else dict(row)
+            if self._owns_wandb:
+                self._wandb.log(out, step=epoch)
+            else:
+                self._wandb.log(out)
+        except Exception:
+            pass  # logging must never break training
 
     def _maybe_select(self, val: dict) -> None:
         v = val.get(self.cfg.select_metric)

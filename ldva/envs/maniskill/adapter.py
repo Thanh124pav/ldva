@@ -1,4 +1,4 @@
-"""Stage 3 adapter: ManiSkill (SETUP.md 7)."""
+"""Stage 3 adapter: ManiSkill (PLAN.md 13)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ class ManiSkillAdapter(NotImplementedAdapter):
         "Implement collect() using ManiSkill's settable simulator state, which "
         "is what makes metadata-conditioned acquisition clean here.",
         "State observations first; move to RGB only once the acquisition "
-        "pipeline works end to end (SETUP.md 7).",
+        "pipeline works end to end (PLAN.md 13).",
         "Only attempt this after the method is stable on MetaWorld.",
     )
 

@@ -1,4 +1,4 @@
-"""Prediction-quality metrics (SETUP.md 22; PLAN.md 17.1).
+"""Prediction-quality metrics (PLAN.md 18, 17.1).
 
 Rank correlation is reported next to MSE everywhere because the acquisition
 planner only ever *compares* candidate batches - PLAN.md 17.2 is explicit that
@@ -82,7 +82,7 @@ def per_sample_scalar_baseline_metrics(
     With `fit` supplied (per-sample means estimated on the *training* contexts)
     this is a genuine out-of-sample baseline, directly comparable to the model's
     validation numbers. That is the comparison that belongs in success criterion
-    1 of SETUP.md 30 and ablation 1 of PLAN.md 18.
+    1 of PLAN.md 14 and ablation 1 of PLAN.md 18.
 
     Without `fit` it falls back to fitting on the evaluation data itself. That
     hindsight variant is reported too, as an optimistic reference, but it is not
@@ -131,7 +131,7 @@ def within_group_metrics(
     Centring per checkpoint isolates the composition-dependent signal, which is
     the only part where set-level structure can possibly help - so this is the
     comparison behind ablation 3 of PLAN.md 18 and success criterion 2 of
-    SETUP.md 30.
+    PLAN.md 14.
     """
     pred = np.asarray(pred, dtype=np.float64).ravel()
     target = np.asarray(target, dtype=np.float64).ravel()

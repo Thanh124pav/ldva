@@ -7,49 +7,69 @@
 > resulting geometry to decide how to expand data support under a fixed
 > acquisition budget.
 
-`SETUP.md` and `PLAN.md` are the specification; this code implements them.
-Section references in docstrings point back to those two files.
+`PLAN.md` is the specification; this code implements it. Section references in
+docstrings point back to it. (`SETUP.md` was folded into `PLAN.md` and deleted
+in a80981d; references were remapped to the new sections.)
 
 ## Status
 
-Implemented, and verified end to end on the Stage 0 synthetic benchmark:
+The four P0 fixes that `PLAN.md` §15 requires **before** any Stage 1 experiment
+are done:
 
-| SETUP.md §29 coding order | state |
-|---|---|
-| 1. synthetic acquisition test | done — `experiments/synthetic/run_stage0.py` |
-| 2. context supervision format | done — `ldva/data/context_dataset.py` |
-| 3. gradient-alignment effect estimator | done — plus influence, TRAK, one-step, leave-one-out |
-| 4. sample encoder | done — MLP / GRU / transformer backbones |
-| 5. DeepSets context encoder | done — with exact O(N) leave-one-out |
-| 6. contextual effect readout | done — plus the scalar-score ablation |
-| 7. batch utility predictor | done — DeepSets, additive, pairwise |
-| 8. latent diagnostics | done — `ldva/analysis/latent_geometry.py` |
-| 9. KMeans clustering | done — plus GMM and HDBSCAN |
-| 10. PCA direction generation | done — with all four filters of §16 |
-| 11. exact allocation solver | done |
-| 12. beam-search solver | done — plus greedy and a width sweep |
-| 13. PushT integration | **not done** — config, metadata spec and adapter stub |
-| — DMC (PLAN.md §15) | done — `ldva/envs/dmc`, real MuJoCo, scripted experts |
-| 14. metadata mapper | done — local Jacobian + constrained inversion |
-| 15. closed-loop acquisition | done on synthetic — `experiments/run_acquisition_loop.py` |
-| 16. MetaWorld scale-up | adapter **done** (`ldva/envs/metaworld`); the 5-task sweep has not been run |
+| PLAN.md §15 | what changed | where |
+|---|---|---|
+| **P0.1** real rollout evaluation | `evaluate_policy(policy, conditions)` on the adapter; DMC reports environment return, MetaWorld reports its own `info["success"]` and return. Conditions are drawn once and fingerprinted. | `ldva/envs/rollout.py`, both adapters |
+| **P0.2** EnvAdapter closed loop | the loop touches only `metadata_spec` / `initial_dataset` / `evaluation_set` / `eval_conditions` / `collect` / `evaluate_policy`. No synthetic-only call remains. | `experiments/run_acquisition_loop.py` |
+| **P0.3** baselines vs ablations | `direct_gradient_alignment` and `direct_influence` compute their own scores from real gradients and never read the LDVA model; the LDVA-scored rules are renamed `abl_*` and tagged `ldva_ablation`. | `ldva/acquisition/external_baselines.py` |
+| **P0.4** policy context | features and vocabulary index travel as one `PolicyContextRef`; the checkpoint-ID embedding is off by default; validation holds out whole checkpoints. | `ldva/policy/checkpoints.py` |
 
-Also implemented: the cost-aware budget of §31 (`sum_a c_a n_a <= C`) across all
-three solvers, the nine-method baseline suite of §20, and ten of the eleven
-ablations of PLAN.md §18 (the eleventh, exact-vs-beam, is reported inside the
-solver ablation). Stages 4–6 of the benchmark ladder (static datasets, paid
-data, real arm) are not started.
+P1 plumbing: experiment scripts read `configs/env/*.yaml`, every report carries
+the git SHA and simulator versions (`run_provenance`), D₀ / evaluation sets /
+rollout conditions are cached per seed (`ldva/data/cache.py`), and `--seeds`
+aggregates.
 
-Everything above `ldva/envs/base.py` is environment-agnostic, so moving up the
-ladder means implementing one `EnvAdapter` — `metadata_spec`, `collect`,
-`evaluation_set` — and nothing else. Three adapters are real (synthetic, DMC,
-MetaWorld); the PushT and ManiSkill stubs raise `NotImplementedError` listing
-exactly what to implement, so the integration point is unambiguous rather than
-silently wrong.
+Core method stack (unchanged in scope, all implemented): sample and metadata
+schemas, multi-context supervision, five effect estimators, MLP/GRU/transformer
+sample encoders, DeepSets context encoder with exact O(N) leave-one-out,
+contextual effect readout, set/additive/pairwise utility, latent diagnostics,
+KMeans/GMM/HDBSCAN, PCA direction generation with all four filters, metadata
+mapper, exact/greedy/beam allocation, count and monetary budgets.
 
-Nothing had to be installed for any of this: the shared `deeplearning` env
-already had `metaworld` 3.1.1, `dm_control` 1.0.27 and `mujoco` 3.3.0, and
-there were no version conflicts.
+Ablations now cover all 13 of `PLAN.md` §20 — item 13 (BC-loss vs rollout
+correlation) needs a simulator and is declared simulator-only rather than
+quietly missing. Not started: server-scale runs, robosuite, Diffusion Policy /
+ACT, paid data, real robot. PushT and ManiSkill remain stubs; `PLAN.md` §16
+says they are not Stage 1 blockers.
+
+### A blocker found and fixed in the MetaWorld adapter
+
+`reach-v3`, `push-v3` and `pick-place-v3` contain
+
+```python
+while np.linalg.norm(goal_pos[:2] - self._target_pos[:2]) < 0.15:
+    goal_pos = self._get_state_rand_vec()
+```
+
+and under `_freeze_rand_vec = True` — the mechanism that makes acquisition
+controllable at all — `_get_state_rand_vec()` returns the same pinned vector
+forever, so `env.reset()` **hangs indefinitely** on any request whose object
+and goal are closer than 0.15. No exception, no timeout. A planner asking for
+an object near its goal is a perfectly reasonable request, so this would have
+stalled E2 at an unpredictable point. Every pinned vector is now repaired to
+satisfy the constraint before it reaches the simulator, and the repaired value
+is what gets recorded as realized metadata.
+
+### Evaluation policies are trained separately from supervision policies
+
+One policy-training config cannot serve both roles, and sharing it made the
+headline metric unreadable. Supervision wants a *spread* checkpoint cloud, which
+`init_scale` and multiple restarts produce by degrading each run. The
+acquisition curve wants the best policy the dataset can support. Measured on
+DMC `reacher-easy` with 900 chunks: SGD/400 steps reaches rollout return 27.7,
+Adam-1e-3/2000 reaches 75.5, Adam-1e-3/6000 reaches 79.2, against a scripted
+expert at 100. Inside the loop the shared config was producing return ≈ 3.2 —
+no dynamic range, so no acquisition method could have differed from another.
+The two are now separate configs.
 
 ## Environments
 
@@ -68,7 +88,7 @@ python experiments/run_pipeline.py --env metaworld
 python experiments/run_pipeline.py --env synthetic --quick
 ```
 
-Two MetaWorld deviations from SETUP.md §6, both forced by the installed
+Two MetaWorld deviations from PLAN.md §6, both forced by the installed
 package and both recorded in the adapter docstring: metaworld 3.1.1 ships only
 `*-v3` environments (all five named tasks exist), and the controllable metadata
 width differs per task (6 values for reach/push/pick-place, 3 for
@@ -84,42 +104,63 @@ scikit-learn, scipy, matplotlib, wandb). No new environment is needed:
 ~/miniconda3/envs/deeplearning/bin/python -m pytest tests/ -q
 ```
 
-Per SETUP.md §3, simulator dependencies stay in their own envs — PushT /
+Per PLAN.md §3, simulator dependencies stay in their own envs — PushT /
 MetaWorld / ManiSkill should be installed into separate conda envs
 (`robo-mujoco`, `robo-maniskill`), never alongside the LDVA core.
 
 ## Run it
 
 ```bash
-# Stage 0 gate: the six success criteria of SETUP.md 30 (~15 min)
-~/miniconda3/envs/deeplearning/bin/python experiments/synthetic/run_stage0.py
+PY=~/miniconda3/envs/deeplearning/bin/python
 
-# fast smoke version (~3 min)
-~/miniconda3/envs/deeplearning/bin/python experiments/synthetic/run_stage0.py --quick
+# E0 - the synthetic preflight gate (PLAN.md 17). ~15 min per seed.
+# PLAN.md 17: ">= 3 seeds for measurement. Do not quote quick-mode results."
+for s in 0 1 2; do $PY experiments/synthetic/run_stage0.py --seed $s --out runs/E0/seed$s; done
 
-# closed-loop acquisition, LDVA against 6 baselines at equal budget
-~/miniconda3/envs/deeplearning/bin/python experiments/run_acquisition_loop.py --quick
+# E1 - DMC reacher closed loop, the six methods of PLAN.md 17 E1.
+# Hours, so run it detached; one method per invocation, results on disk as they land.
+nohup bash experiments/run_e1_dmc.sh > runs/E1_dmc.log 2>&1 &
+$PY experiments/aggregate_e1.py --root runs/E1_dmc      # merge + resolution test
 
-# ablations of PLAN.md 18
-~/miniconda3/envs/deeplearning/bin/python experiments/synthetic/run_ablations.py --quick
+# E2 - MetaWorld push-v3, same six methods
+$PY experiments/run_acquisition_loop.py --env metaworld --env-task push-v3 --seeds 3
+
+# single closed-loop run on any adapter
+$PY experiments/run_acquisition_loop.py --env dmc --env-task reacher-easy --seeds 3
+$PY experiments/run_acquisition_loop.py --env synthetic --quick
+
+# the PLAN.md 12.1 ablations are opt-in and prefixed, so they cannot land in a
+# baseline table by accident
+$PY experiments/run_acquisition_loop.py --env dmc \
+    --methods ldva_beam,abl_gradient_alignment,abl_influence_cupid_style
+
+# PLAN.md 20 ablations, and the checkpoint-ID comparison of 20.6
+$PY experiments/synthetic/run_ablations.py --quick
+$PY experiments/synthetic/run_stage0.py --ckpt-id-ablation --val-split-by context
 ```
 
-`run_stage0.py` prints a pass/fail table and writes `stage0_report.json` plus
-figures. It is a gate, not a demo: SETUP.md §4 says do not move to robotics
-until it passes.
+`run_stage0.py` prints a pass/fail table and writes `stage0_report.json`. It is
+a gate, not a demo: `PLAN.md` §14 makes the synthetic world a preflight that
+has to pass before robotics work counts.
 
-`--quick` is a smoke test for the plumbing, not a measurement. It uses ~⅓ the
-data and ⅓ the epochs, and its effect sizes are correspondingly weaker — the
-set-vs-additive ratio comes out between 0.95 and 1.07 on `--quick` against 2.49
-on the full config, so **criterion 2 typically fails on `--quick`** for lack of
-data rather than for any structural reason. Quote numbers from a full run, with
-`--seeds` ≥ 3.
+`--quick` is a smoke test for the plumbing, **not** a measurement. It uses ~⅓
+the data and ⅓ the epochs, so its effect sizes are correspondingly weaker and
+criterion 2 typically fails on it for lack of data rather than for any
+structural reason. `PLAN.md` §17 says not to quote quick-mode results.
+
+The closed-loop script refuses to let a noisy ranking be read as a result. Each
+round averages several independently initialized evaluation policies, and the
+run reports whether the spread between methods exceeds twice the standard error
+of a method's mean — printing `NOT RESOLVABLE` instead of a winner when it does
+not. It also names its `primary_metric`: real rollout return where the adapter
+can drive a simulator, and the BC proxy otherwise, which `PLAN.md` §18 does not
+accept as a robotics outcome.
 
 ## Stage 0 result
 
 The gate passes 6/6 on the default config (seed 0, single seed):
 
-| SETUP.md §30 criterion | measured | rule |
+| PLAN.md §30 criterion | measured | rule |
 |---|---|---|
 | 1. contextual beats a scalar per sample | 1.92× lower MSE (1.42× vs the scalar-readout ablation) | ratio > 1 |
 | 2. set utility beats additive utility | 2.49× lower within-checkpoint gain MSE (R² 0.65 vs 0.12) | ratio > 1 |
@@ -158,7 +199,7 @@ experiments/    stage 0, ablations, closed-loop acquisition
 tests/          106 tests, CPU-only, ~16s
 ```
 
-One deviation from the structure in SETUP.md §28: the code lives under an
+One deviation from the structure in PLAN.md §28: the code lives under an
 importable `ldva/` package rather than at the top level, so `data/` cannot
 collide with runtime data directories. `configs/`, `experiments/` and `tests/`
 stay where §28 puts them.
@@ -208,7 +249,7 @@ the relevant docstring.
 - **Latent-space outwardness does not imply metadata actionability.** Encoded
   latents carry per-chunk sampling noise (73% of latent variance for an
   untrained encoder), so leading PCA directions are partly noise directions that
-  no metadata change can produce. SETUP.md §16's fourth filter is what fixes
+  no metadata change can produce. PLAN.md §16's fourth filter is what fixes
   this: filtering on the *constrained* achievable cosine raised realized
   direction control from −0.18 to +0.37.
 - **Step size trades off against directional fidelity.** Realized direction
@@ -264,7 +305,7 @@ undetermined diagnostic (NaN) counts as *not* passed, never as a pass.
 
 ## Reproducibility
 
-`SeedBundle` keeps the five seed roles of SETUP.md §24 independent — `env`,
+`SeedBundle` keeps the five seed roles of PLAN.md §24 independent — `env`,
 `policy`, `context`, `latent`, `acquisition` — so changing the search seed does
 not perturb data generation. Use ≥3 seeds in development and ≥5 for final
 numbers (`--seeds`).

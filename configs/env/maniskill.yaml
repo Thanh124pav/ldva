@@ -1,4 +1,4 @@
-# Stage 3: ManiSkill, after the method is stable (SETUP.md 7).
+# Stage 3: ManiSkill, after the method is stable (PLAN.md 13).
 # State observations first; RGB only once the acquisition pipeline works.
 name: maniskill
 tasks: [PushCube, PickCube, StackCube, PegInsertionSide, PickSingleYCB]

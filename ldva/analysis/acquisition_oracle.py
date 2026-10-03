@@ -20,7 +20,6 @@ import numpy as np
 import torch
 
 from ldva.acquisition.metadata_mapper import MetadataPlan
-from ldva.data.samples import SampleStore
 from ldva.envs.base import EnvAdapter
 from ldva.policy.bc import MLPPolicy
 from ldva.supervision.bc_task import BCSupervisionTask

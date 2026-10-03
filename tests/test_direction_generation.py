@@ -1,4 +1,4 @@
-"""Clustering and candidate-direction generation (PLAN.md 7-8; SETUP.md 15-16)."""
+"""Clustering and candidate-direction generation (PLAN.md 7-8; PLAN.md 6-16)."""
 
 from __future__ import annotations
 
@@ -110,7 +110,7 @@ def test_all_kept_directions_decrease_support_density(latent_blobs):
 
 
 def test_trust_region_blocks_long_range_extrapolation(latent_blobs):
-    """SETUP.md 16: uncontrolled long-range extrapolation must be refused."""
+    """PLAN.md 7: uncontrolled long-range extrapolation must be refused."""
     z, _ = latent_blobs
     clusters = _clusters(z)
     kept_small = DirectionGenerator(

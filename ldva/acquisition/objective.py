@@ -1,4 +1,4 @@
-"""The one scoring function every planner shares (PLAN.md 10; SETUP.md 18).
+"""The one scoring function every planner shares (PLAN.md 8, 9).
 
     V_hat(n | D, theta) = mean_m F_psi(Z_future^(m), D, theta)
 
@@ -10,10 +10,10 @@ Three properties matter and are enforced here rather than in each solver:
   a distribution of possible future samples rather than one latent point;
 - exact, greedy and beam search all call `predict`, so a difference between
   them is a difference in *search*, not in objective. That is what makes the
-  "beam approximately matches exact" check in SETUP.md 30 meaningful.
+  "beam approximately matches exact" check of PLAN.md 14 (Stage 1A) meaningful.
 
-`BudgetSpec` carries both the count budget of PLAN.md 11 (`sum n_a <= B`) and
-the monetary budget of SETUP.md 31 (`sum c_a n_a <= C`).
+`BudgetSpec` carries both the count budget of PLAN.md 9 (`sum n_a <= B`) and
+the monetary budget (`sum c_a n_a <= C`).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ import torch
 
 from ldva.acquisition.directions import AcquisitionDirection
 from ldva.acquisition.latent_sampler import LatentSampler
+from ldva.policy.checkpoints import PolicyContextRef
 
 
 @dataclass
@@ -133,17 +134,33 @@ class AllocationObjective:
         directions: list[AcquisitionDirection],
         budget: BudgetSpec,
         policy_features: np.ndarray | None = None,
-        ckpt_index: int = 0,
+        ckpt_index: int | None = None,
         cfg: ObjectiveConfig | None = None,
+        policy_context: PolicyContextRef | None = None,
     ):
         if not directions:
             raise ValueError("need at least one candidate direction")
+        if policy_context is not None:
+            if policy_features is not None or ckpt_index is not None:
+                raise ValueError(
+                    "pass either policy_context or the loose policy_features / "
+                    "ckpt_index pair, not both - having two sources for the same "
+                    "conditioning is how they came to disagree (PLAN.md 15 P0.4)"
+                )
+            policy_features = policy_context.features
+            ckpt_index = policy_context.ckpt_index
         self.model = model
         self.sampler = sampler
         self.directions = directions
         self.budget = budget
         self.policy_features = policy_features
-        self.ckpt_index = int(ckpt_index)
+        # None means "no checkpoint-ID embedding for this policy", which is the
+        # main-result setting (PLAN.md 4.2) and the only correct state for an
+        # unseen checkpoint. It is NOT defaulted to 0: a silent 0 is precisely
+        # the P0.4 bug, where features from checkpoint k were combined with the
+        # ID embedding of checkpoint 0.
+        self.ckpt_index = None if ckpt_index is None else int(ckpt_index)
+        self.policy_context = policy_context
         self.cfg = cfg or ObjectiveConfig()
         self.n_directions = len(directions)
         self._cache: dict[tuple[int, ...], AllocationValue] = {}

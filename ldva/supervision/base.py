@@ -1,4 +1,4 @@
-"""Effect-label interface (SETUP.md 12; PLAN.md 3.1).
+"""Effect-label interface (PLAN.md 3.2, 3.1).
 
 Everything downstream consumes `ContextRecord`s, so the only thing an
 environment has to provide is a `SupervisionTask`: how to get the current

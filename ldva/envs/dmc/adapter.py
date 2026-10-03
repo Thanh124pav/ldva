@@ -1,4 +1,4 @@
-"""DMC adapter: dm_control for debugging (PLAN.md 15, item 3).
+"""DMC adapter: dm_control for debugging (PLAN.md 13, 14 Stage 1B).
 
 PLAN.md lists DMC/MuJoCo as the debugging rung of the MVP ladder, and that is
 exactly what it is used for here: a real MuJoCo simulator with *cleanly
@@ -49,6 +49,7 @@ import torch
 from ldva.data.metadata import MetadataField, MetadataSpec
 from ldva.data.samples import SampleStore
 from ldva.envs.base import EnvAdapter, register_adapter
+from ldva.envs.rollout import EvalConditions, PolicyActor, RolloutMetrics
 
 #: reacher link lengths, read off the model (body `hand` and `finger` offsets)
 _REACHER_L1 = 0.12
@@ -298,9 +299,79 @@ class DMCAdapter(EnvAdapter):
             cost=np.asarray(cost, dtype=np.float64),
         )
 
+    # ---- rollout evaluation (PLAN.md 15, P0.1) ---------------------------
+    supports_rollout_eval = True
+
+    def eval_conditions(self, n: int, rng) -> EvalConditions:
+        """Fixed goals/starts spanning the whole metadata box.
+
+        Uniform over the box on purpose: `initial_dataset` covers only one
+        corner of it, so a policy trained on D_0 alone must score poorly here
+        and acquisition has something real to improve.
+        """
+        return EvalConditions(
+            metadata=self._spec.sample(n, rng), seed=int(self.cfg.seed), env_name=self.name
+        )
+
+    def evaluate_policy(self, policy, conditions: EvalConditions) -> RolloutMetrics:
+        """Run `policy` in MuJoCo from each condition; report DMC return.
+
+        PLAN.md 15 asks for "environment return" on DMC. Success uses the same
+        tail-reward rule as `collect`, so an episode counted as successful here
+        and one counted as successful during collection mean the same thing.
+        """
+        returns, successes, lengths = [], [], []
+        with PolicyActor(policy) as actor:
+            for row in conditions.metadata:
+                self.env.reset()
+                with self.env.physics.reset_context():
+                    self.spec_.setter(self.env.physics, row)
+                spec = self.env.action_spec()
+                rewards = []
+                for _ in range(self.cfg.max_steps):
+                    obs = self._flat_obs(self._observe())
+                    a = np.clip(actor(obs), spec.minimum, spec.maximum)
+                    ts = self.env.step(a)
+                    rewards.append(float(ts.reward or 0.0))
+                    if ts.last():
+                        break
+                tail = max(1, int(self.cfg.success_tail * len(rewards)))
+                returns.append(float(np.sum(rewards)))
+                successes.append(
+                    bool(np.mean(rewards[-tail:]) > self.cfg.success_threshold)
+                    if rewards
+                    else False
+                )
+                lengths.append(len(rewards))
+        return RolloutMetrics.from_episodes(
+            returns, successes, lengths,
+            task=self.cfg.task,
+            metric="dmc_return",
+            success_rule=f"mean tail-{self.cfg.success_tail:.2f} reward > "
+                         f"{self.cfg.success_threshold}",
+        )
+
+    def expert_reference(self, conditions: EvalConditions) -> RolloutMetrics:
+        """The scripted expert's score on the *same* conditions.
+
+        The ceiling the BC policy is chasing. Without it a return of 120 is
+        uninterpretable; against an expert at 186 and a random policy near 8 it
+        is a fraction of the achievable range.
+        """
+        returns, successes, lengths = [], [], []
+        for row in conditions.metadata:
+            _, _, total_r, success, _ = self._rollout(row)
+            returns.append(total_r)
+            successes.append(success)
+            lengths.append(self.cfg.max_steps)
+        return RolloutMetrics.from_episodes(
+            returns, successes, lengths, task=self.cfg.task, metric="dmc_return",
+            policy="scripted_expert",
+        )
+
     # ---- evaluation -------------------------------------------------------
     def evaluation_set(self, n: int, rng):
-        """Uniform over the whole metadata box, drawn once (SETUP.md 33)."""
+        """Uniform over the whole metadata box, drawn once (PLAN.md 10)."""
         rows = self._spec.sample(max(1, n // max(self.cfg.max_chunks_per_episode, 1)) + 1, rng)
         store = self.collect(rows, rng, round_id=-1)
         idx = rng.permutation(len(store))[:n]

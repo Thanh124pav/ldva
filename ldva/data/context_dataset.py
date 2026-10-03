@@ -1,4 +1,4 @@
-"""Multi-context supervision records (PLAN.md 3.2, 6; SETUP.md 11).
+"""Multi-context supervision records (PLAN.md 3.2, 6, 3.3).
 
 The central constraint of LDVA is that a sample must *not* carry one historical
 scalar. Every sample appears under many `(batch, policy)` contexts, and the data
@@ -23,7 +23,7 @@ from ldva.data.samples import SampleStore
 
 @dataclass
 class ContextRecord:
-    """One optimization context (SETUP.md 11).
+    """One optimization context (PLAN.md 3.3).
 
     `per_sample_effects[k]` is the contextual effect of `batch_sample_ids[k]`
     *inside this batch under this checkpoint* - the same sample in another
@@ -265,7 +265,7 @@ class ContextDataset(Dataset):
         )
         return make(train_idx), make(val_idx)
 
-    # ---- coverage diagnostics (SETUP.md 11) ---------------------------
+    # ---- coverage diagnostics (PLAN.md 3.3) ---------------------------
     def contexts_per_sample(self) -> np.ndarray:
         counts = np.zeros(len(self.store), dtype=np.int64)
         for r in self.records:

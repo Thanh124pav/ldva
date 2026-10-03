@@ -39,7 +39,21 @@ class PolicyContextConfig:
 
 
 class PolicyContextEncoder(nn.Module):
-    """Numeric checkpoint features (+ optional embedding) -> policy context."""
+    """Numeric checkpoint features (+ optional embedding) -> policy context.
+
+    `n_checkpoints=0` - the main-result setting of PLAN.md 4.2 - means the
+    context is the continuous features alone, so the model has no way to
+    memorize which checkpoint it saw and must generalize to an unseen one.
+    An embedding is built only for the checkpoint-ID ablation of PLAN.md 12.1.
+
+    When an embedding *is* built, a missing `ckpt_index` contributes zeros
+    rather than raising. An unseen future checkpoint has no vocabulary index by
+    definition, and `in_dim` is fixed at construction, so without this the
+    ablated model could not be evaluated on held-out checkpoints at all - the
+    very comparison the ablation exists to make. Zeros, not a learned "unknown"
+    row: an unknown row would never appear in training and would stay at its
+    random initialization, injecting a fixed random vector into the context.
+    """
 
     def __init__(self, cfg: PolicyContextConfig):
         super().__init__()
@@ -54,6 +68,10 @@ class PolicyContextEncoder(nn.Module):
     def out_dim(self) -> int:
         return self.cfg.out_dim if self.cfg.enabled else 0
 
+    @property
+    def uses_ckpt_id(self) -> bool:
+        return self.embed is not None
+
     def forward(
         self, policy_features: torch.Tensor, ckpt_index: torch.Tensor | None = None
     ) -> torch.Tensor | None:
@@ -62,8 +80,17 @@ class PolicyContextEncoder(nn.Module):
         parts = []
         if self.cfg.policy_feat_dim > 0:
             parts.append(policy_features[..., : self.cfg.policy_feat_dim])
-        if self.embed is not None and ckpt_index is not None:
-            parts.append(self.embed(ckpt_index))
+        if self.embed is not None:
+            if ckpt_index is None:
+                parts.append(
+                    torch.zeros(
+                        (*policy_features.shape[:-1], self.cfg.embed_dim),
+                        device=policy_features.device,
+                        dtype=policy_features.dtype,
+                    )
+                )
+            else:
+                parts.append(self.embed(ckpt_index))
         if not parts:
             parts = [torch.zeros(policy_features.shape[0], 1, device=policy_features.device)]
         return self.net(torch.cat(parts, dim=-1))
@@ -215,7 +242,7 @@ class LDVADataModel(nn.Module):
         self,
         store: SampleStore,
         policy_features: np.ndarray,
-        ckpt_index: int = 0,
+        ckpt_index: int | None = None,
         batch_size: int = 512,
     ) -> np.ndarray:
         """Encode a whole `SampleStore` at one reference checkpoint (PLAN.md 7).
@@ -235,11 +262,12 @@ class LDVADataModel(nn.Module):
                 store.metadata_norm()[lo:hi].astype(np.float32)
             ).to(dev)
             n = hi - lo
-            fake = {
-                "policy_features": pf.unsqueeze(0).expand(n, -1),
-                "ckpt_index": torch.full((n,), ckpt_index, dtype=torch.long, device=dev),
-            }
-            pctx = self.policy_encoder(fake["policy_features"], fake["ckpt_index"])
+            idx = (
+                None
+                if ckpt_index is None
+                else torch.full((n,), ckpt_index, dtype=torch.long, device=dev)
+            )
+            pctx = self.policy_encoder(pf.unsqueeze(0).expand(n, -1), idx)
             z = self.encoder(obs, act, policy_features=pctx, meta=meta)
             out.append(z.cpu().numpy())
         return np.concatenate(out, axis=0)
@@ -293,7 +321,7 @@ class LDVADataModel(nn.Module):
         self,
         z: torch.Tensor | np.ndarray,
         policy_features: np.ndarray | torch.Tensor | None = None,
-        ckpt_index: int = 0,
+        ckpt_index: int | None = None,
         mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Score hypothetical latent batches -> (n_batches,).
@@ -316,7 +344,11 @@ class LDVADataModel(nn.Module):
             )
             if pf.ndim == 1:
                 pf = pf.unsqueeze(0).expand(z.shape[0], -1)
-            idx = torch.full((z.shape[0],), ckpt_index, dtype=torch.long, device=dev)
+            idx = (
+                None
+                if ckpt_index is None
+                else torch.full((z.shape[0],), ckpt_index, dtype=torch.long, device=dev)
+            )
             policy_ctx = self.policy_encoder(pf, idx)
         return self.batch_utility(
             z, mask, policy_ctx, self._dataset_context(z.shape[0])
@@ -326,7 +358,7 @@ class LDVADataModel(nn.Module):
         self,
         z: torch.Tensor | np.ndarray,
         policy_features: np.ndarray | torch.Tensor | None = None,
-        ckpt_index: int = 0,
+        ckpt_index: int | None = None,
         mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Contextual effects for hypothetical latent batches -> (n_batches, n)."""
@@ -341,7 +373,11 @@ class LDVADataModel(nn.Module):
             pf = torch.as_tensor(np.asarray(policy_features, dtype=np.float32), device=dev)
             if pf.ndim == 1:
                 pf = pf.unsqueeze(0).expand(z.shape[0], -1)
-            idx = torch.full((z.shape[0],), ckpt_index, dtype=torch.long, device=dev)
+            idx = (
+                None
+                if ckpt_index is None
+                else torch.full((z.shape[0],), ckpt_index, dtype=torch.long, device=dev)
+            )
             policy_ctx = self.policy_encoder(pf, idx)
         h_loo = self.context_encoder.leave_one_out(z, mask)
         return self.readout(z, h_loo, policy_ctx)

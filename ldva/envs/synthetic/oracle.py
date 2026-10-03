@@ -1,4 +1,4 @@
-"""Ground truth for Stage 0 (SETUP.md 4: "optimal acquisition allocation").
+"""Ground truth for Stage 0 (PLAN.md 14: "optimal acquisition allocation").
 
 Because the synthetic world can be queried at any metadata, we can *actually
 collect* a proposed acquisition batch and measure what it does to the policy.

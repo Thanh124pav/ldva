@@ -1,4 +1,4 @@
-"""Allocation planners (PLAN.md 11; SETUP.md 19, 30 criterion 4).
+"""Allocation planners (PLAN.md 11, 9, 14 criterion 4).
 
 The planners are tested against an objective with a *known analytic optimum*,
 so "beam matches exact" and "greedy can miss complementarity" are checked
@@ -114,7 +114,7 @@ def test_all_solvers_spend_the_whole_budget(setup):
 
 
 def test_beam_matches_exact_and_is_cheaper(setup):
-    """SETUP.md 30 criterion 4, plus the point of using beam search at all."""
+    """PLAN.md 14 criterion 4, plus the point of using beam search at all."""
     obj, _ = setup
     ex = exact_search(obj)
     obj.clear_cache()
@@ -192,7 +192,7 @@ def test_enumeration_size_matches_the_combinatorial_formula():
 
 
 def test_monetary_budget_is_respected_by_every_solver():
-    """SETUP.md 31: sum_a c_a n_a <= C, not only sum_a n_a <= B."""
+    """PLAN.md 10: sum_a c_a n_a <= C, not only sum_a n_a <= B."""
     centers = np.eye(A) * 10.0
     dirs = [_Direction(i, centers[i]) for i in range(A)]
     costs = np.array([5.0, 1.0, 1.0, 1.0, 1.0])

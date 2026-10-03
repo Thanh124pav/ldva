@@ -1,4 +1,4 @@
-"""Stage 0 synthetic world (SETUP.md 4; PLAN.md 20 Phase 0).
+"""Stage 0 synthetic world (PLAN.md 14, 20 Phase 0).
 
 The generative chain is deliberately the same one LDVA assumes:
 
@@ -57,7 +57,7 @@ class Region:
     center: np.ndarray
     scale: np.ndarray
     weight: float = 1.0
-    #: monetary cost per trajectory from this region (SETUP.md 31)
+    #: monetary cost per trajectory from this region (PLAN.md 10)
     cost: float = 1.0
     extra: dict = field(default_factory=dict)
 
@@ -207,7 +207,6 @@ class SyntheticWorld:
         behaviour LDVA is supposed to produce, and which pure resampling of the
         existing data cannot.
         """
-        d = len(self.metadata_spec)
         lo, hi = self.metadata_spec.low, self.metadata_spec.high
         mid = (lo + hi) / 2
         span = (hi - lo) / 2
@@ -224,7 +223,7 @@ class SyntheticWorld:
     def evaluation_metadata(self, n: int, rng: np.random.Generator) -> np.ndarray:
         """Fixed evaluation distribution, declared *before* acquisition.
 
-        SETUP.md 33 is explicit that the test distribution must not move after
+        PLAN.md 14 is explicit that the test distribution must not move after
         seeing what the planner acquires, so this is uniform over the full
         metadata box and never parameterized by the acquired data.
         """

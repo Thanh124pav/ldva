@@ -1,4 +1,4 @@
-"""Greedy allocation (PLAN.md 11.3; SETUP.md 19).
+"""Greedy allocation (PLAN.md 11.3, 9).
 
 One unit at a time to the direction with the largest one-step marginal gain.
 This is a **baseline**, not the planner: its purpose is to expose whether

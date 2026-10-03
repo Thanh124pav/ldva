@@ -1,4 +1,4 @@
-"""Latent clustering into local effect domains (PLAN.md 3.3, 7; SETUP.md 15).
+"""Latent clustering into local effect domains (PLAN.md 3.3, 7, 6).
 
 A `ClusterState` carries everything the direction generator needs, so the
 clustering method itself stays swappable - PLAN.md 7 is explicit that no

@@ -1,4 +1,4 @@
-"""Effect-label estimators (SETUP.md 12; PLAN.md 3.1).
+"""Effect-label estimators (PLAN.md 3.2, 3.1).
 
 The sign convention is the thing most likely to be silently wrong: every target
 must be a *gain* (larger is better), so a sample that helps has a positive
@@ -13,13 +13,13 @@ import numpy as np
 import pytest
 from scipy.stats import spearmanr
 
+from ldva.supervision.bc_task import BCSupervisionTask
 from ldva.supervision.gradient_alignment import (
     GradientAlignmentEstimator,
     OneStepUtilityEstimator,
 )
 from ldva.supervision.influence import InfluenceEstimator, TRAKEstimator
 from ldva.supervision.leave_one_out import LeaveOneOutEstimator
-from ldva.supervision.bc_task import BCSupervisionTask
 
 SMALL_LR = 0.01  # small enough that the first-order proxies are valid
 

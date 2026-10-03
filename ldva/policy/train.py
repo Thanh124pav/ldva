@@ -29,7 +29,12 @@ class BCTrainConfig:
     lr: float = 1e-2
     snapshot_every: int = 50
     n_restarts: int = 2
-    init_scale: float = 0.5
+    #: deliberate init perturbation, which spreads the checkpoint cloud so the
+    #: supervision contexts are not all one optimization path. `None` leaves
+    #: the module's own initialization alone, which is what an *evaluation*
+    #: policy wants: perturbing the init of a policy whose rollout return is
+    #: the headline metric trades away the thing being measured.
+    init_scale: float | None = 0.5
     weight_decay: float = 0.0
     optimizer: str = "sgd"
     #: skip the first snapshot of each run if you do not want random-init contexts
@@ -67,14 +72,19 @@ def train_bc(
         torch.manual_seed(seed + 7919 * restart)
         policy = MLPPolicy(store.obs_dim, store.act_dim, hidden=hidden).to(device)
         policy.fit_obs_normalizer(obs)
-        with torch.no_grad():
-            # Spread the checkpoint cloud, but *relative to each tensor's own
-            # scale*. An absolute perturbation is fine for a linear policy and
-            # destroys a deep one: adding N(0, 0.5) to a 128-wide layer whose
-            # init std is ~0.09 is a 5-sigma kick that SGD cannot recover from.
-            for p in policy.parameters():
-                scale = p.detach().std().clamp(min=1e-8) if p.numel() > 1 else torch.tensor(1.0)
-                p.mul_(cfg.init_scale).add_(cfg.init_scale * scale * torch.randn_like(p))
+        if cfg.init_scale is not None:
+            with torch.no_grad():
+                # Spread the checkpoint cloud, but *relative to each tensor's own
+                # scale*. An absolute perturbation is fine for a linear policy and
+                # destroys a deep one: adding N(0, 0.5) to a 128-wide layer whose
+                # init std is ~0.09 is a 5-sigma kick that SGD cannot recover from.
+                for p in policy.parameters():
+                    scale = (
+                        p.detach().std().clamp(min=1e-8)
+                        if p.numel() > 1
+                        else torch.tensor(1.0)
+                    )
+                    p.mul_(cfg.init_scale).add_(cfg.init_scale * scale * torch.randn_like(p))
         opt = _make_optimizer(policy, cfg)
         rng = np.random.default_rng(seed + 104729 * restart)
 

@@ -1,4 +1,4 @@
-"""Leave-one-out effect targets (SETUP.md 12, "expensive"; PLAN.md 3.1).
+"""Leave-one-out effect targets (PLAN.md 3.2, "expensive"; PLAN.md 3.1).
 
 The preferred definition:
 
@@ -7,7 +7,7 @@ The preferred definition:
 This is the only target that is genuinely *contextual* - remove the same sample
 from a different batch and you get a different number, because the remaining
 batch members change the update. It is also `len(B) + 1` updates per context,
-hence "use expensive targets on a subset for calibration" (SETUP.md 12).
+hence "use expensive targets on a subset for calibration" (PLAN.md 3.2).
 
 `ShortHorizonRetrainEstimator` is the same idea with `n_steps` updates instead
 of one, which captures a little of the longer-horizon effect at a proportional

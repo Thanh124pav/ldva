@@ -1,4 +1,4 @@
-"""Sample units and their storage (SETUP.md 10).
+"""Sample units and their storage (PLAN.md 3.1).
 
 The default sample unit is a *trajectory chunk*: it keeps local temporal context
 that an isolated transition loses, while staying far cheaper to label than a
@@ -18,7 +18,7 @@ from ldva.data.metadata import MetadataSpec
 
 @dataclass
 class Sample:
-    """A single trajectory chunk with the fields SETUP.md 10 requires."""
+    """A single trajectory chunk with the fields PLAN.md 3.1 requires."""
 
     sample_id: int
     trajectory_id: int
@@ -33,7 +33,7 @@ class Sample:
     metadata: np.ndarray  # (meta_dim,) raw acquisition metadata
     #: acquisition round that produced this chunk (0 = initial dataset)
     round_id: int = 0
-    #: monetary cost of acquiring it (SETUP.md 31); 0 for free simulation data
+    #: monetary cost of acquiring it (PLAN.md 10); 0 for free simulation data
     cost: float = 0.0
 
 

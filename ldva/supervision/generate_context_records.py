@@ -1,4 +1,4 @@
-"""Generate multi-context supervision (PLAN.md 6; SETUP.md 11, 25).
+"""Generate multi-context supervision (PLAN.md 6, 3.3).
 
 Two requirements fight each other here. Every sample needs *many* contexts
 (>= 20) so the model cannot memorize one scalar per sample, and the batch
@@ -197,7 +197,7 @@ def generate_context_records(
 def _calibration_report(
     calib: list[tuple[np.ndarray, np.ndarray]], ref_estimator: EffectEstimator | None
 ) -> dict:
-    """Correlate the cheap target against the expensive one (SETUP.md 12).
+    """Correlate the cheap target against the expensive one (PLAN.md 3.2).
 
     If this is weak, the cheap labels are mostly estimator noise and latent
     learning will collapse - failure mode F3 in PLAN.md 19.

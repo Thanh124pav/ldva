@@ -1,4 +1,4 @@
-"""Latent-geometry diagnostics and the Phase 3 gate (PLAN.md 19; SETUP.md 14, 22).
+"""Latent-geometry diagnostics and the Phase 3 gate (PLAN.md 19, 6, 18).
 
 Each diagnostic is tested on data where the right answer is known by
 construction, because a gate that cannot distinguish good geometry from noise

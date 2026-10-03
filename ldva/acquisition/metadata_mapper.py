@@ -1,4 +1,4 @@
-"""Latent directions -> actionable metadata (PLAN.md 12; SETUP.md 17).
+"""Latent directions -> actionable metadata (PLAN.md 12, 7.3).
 
 Without this module the planner produces latent directions nobody can collect.
 We fit a **local** linear map per effect domain,
@@ -17,7 +17,7 @@ in normalized metadata units so the regression is not dominated by whichever
 field happens to have the largest range.
 
 The honest test of the whole module is `cosine(desired v, realized delta_z)`
-after actually collecting at `m_anchor + delta_m*` - PLAN.md 24 and SETUP.md 22.
+after actually collecting at `m_anchor + delta_m*` - PLAN.md 24 and PLAN.md 18.
 Only `evaluate_realized_direction` reports that, and it needs real new data.
 
 Two things learned the hard way, both encoded in the defaults:
@@ -31,7 +31,7 @@ Two things learned the hard way, both encoded in the defaults:
   latents contain per-chunk sampling noise, so a cluster's leading PCA
   directions are partly noise directions that no metadata change can produce.
   `reachability_cosine` measures this and `filter_actionable_directions`
-  implements the fourth filter of SETUP.md 16. If almost nothing survives, that
+  implements the fourth filter of PLAN.md 7. If almost nothing survives, that
   is failure mode F4 in PLAN.md 19, and it should be reported, not worked around.
 """
 
@@ -405,7 +405,7 @@ def evaluate_realized_direction(
     `z_before_anchor` are the latents of the anchors a plan was built from and
     `z_after_collected` the latents of what the environment actually returned.
     The cosine between the mean realized displacement and the desired direction
-    is the metric SETUP.md 22 names; the per-sample distribution is reported too
+    is the metric PLAN.md 18 names; the per-sample distribution is reported too
     because a good mean can hide a very noisy realization.
     """
     z_before_anchor = np.atleast_2d(z_before_anchor)
@@ -434,7 +434,7 @@ def evaluate_realized_direction(
 
 @dataclass
 class ActionabilityConfig:
-    """Thresholds for the metadata-actionability filter (SETUP.md 16).
+    """Thresholds for the metadata-actionability filter (PLAN.md 7).
 
     The primary test is `min_achievable_cosine`, measured by actually solving
     the constrained inversion at the direction's own anchors. Pure subspace
@@ -466,7 +466,7 @@ def filter_actionable_directions(
 ) -> tuple[list[AcquisitionDirection], dict]:
     """Drop latent directions no metadata change can actually produce.
 
-    This is the filter SETUP.md 16 lists alongside outward movement, density
+    This is the filter PLAN.md 7 lists alongside outward movement, density
     decrease and the trust region, and it is the one that decides whether
     directional acquisition is executable at all. Encoded latents carry
     per-chunk sampling noise, so a cluster's leading PCA directions are partly

@@ -1,4 +1,4 @@
-"""Permutation-invariant context encoder (PLAN.md 4.2; SETUP.md 13).
+"""Permutation-invariant context encoder (PLAN.md 4.2, 4).
 
 DeepSets, with one design choice that matters downstream: the pooling statistics
 are restricted to ones that support **exact leave-one-out** in O(N) rather than

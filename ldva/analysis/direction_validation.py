@@ -6,7 +6,7 @@ synthetic world, DMC and MetaWorld. The chain being validated is
     desired latent direction -> metadata perturbation -> collected sample
     -> realized latent movement
 
-and the metric is `cosine(desired, realized)` (SETUP.md 22).
+and the metric is `cosine(desired, realized)` (PLAN.md 18).
 
 Two measurement details decide whether the number means anything:
 

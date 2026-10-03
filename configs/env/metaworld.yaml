@@ -1,7 +1,7 @@
 # Stage 2: MetaWorld, the first serious controllable acquisition benchmark
-# (SETUP.md 6, 27). Do NOT start with MT50.
+# (PLAN.md 14, 17). Do NOT start with MT50.
 #
-# Deviation from SETUP.md 6: metaworld 3.1.1 ships only *-v3 environments, so
+# Deviation from PLAN.md 14: metaworld 3.1.1 ships only *-v3 environments, so
 # the five tasks named there are used by their v3 names. All five exist and all
 # five have working scripted experts.
 name: metaworld
@@ -26,7 +26,7 @@ metadata:
   - {name: goal_y, low: 0.8, high: 0.9}
   - {name: goal_z, low: 0.01, high: 0.3}
 
-# SETUP.md 9 suggests SAC/PPO here. The LDVA pipeline clones the scripted
+# PLAN.md 13 suggests SAC/PPO here. The LDVA pipeline clones the scripted
 # experts instead, which is what makes many acquisition rounds affordable.
 policy: mlp_bc
 policy_hidden: [256, 256]

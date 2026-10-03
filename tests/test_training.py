@@ -1,4 +1,4 @@
-"""Losses, trainer plumbing and baselines (PLAN.md 5; SETUP.md 20, 22)."""
+"""Losses, trainer plumbing and baselines (PLAN.md 5, 12, 18)."""
 
 from __future__ import annotations
 
@@ -141,7 +141,7 @@ def test_training_reduces_the_loss(context_dataset, store):
 
 
 def test_baseline_suite_produces_valid_allocations(store, datamodel, trained_policy, world):
-    """SETUP.md 20: every baseline must spend the same budget over the same
+    """PLAN.md 12: every baseline must spend the same budget over the same
     candidate directions, so the comparison isolates the allocation rule."""
     from ldva.acquisition.baselines import BaselineSuite
     from ldva.acquisition.clustering import ClusteringConfig, LatentClustering

@@ -1,6 +1,6 @@
-"""Figures (SETUP.md 23, 35). Matplotlib with the Agg backend, no interactivity.
+"""Figures (PLAN.md 15, 18). Matplotlib with the Agg backend, no interactivity.
 
-The headline figure for the paper is `plot_performance_vs_cost` - SETUP.md 35
+The headline figure for the paper is `plot_performance_vs_cost` - PLAN.md 18
 names "real-robot success rate vs monetary acquisition cost" as the main plot,
 and the simulation stages produce the same shape with cost standing in for
 number of trajectories.
@@ -151,7 +151,7 @@ def plot_performance_vs_cost(
     ylabel: str = "policy performance",
     target: float | None = None,
 ) -> Path:
-    """The headline acquisition figure (SETUP.md 35)."""
+    """The headline acquisition figure (PLAN.md 18)."""
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
     for name, (x, y) in curves.items():
         ax.plot(np.asarray(x), np.asarray(y), "o-", label=name)

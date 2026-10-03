@@ -1,4 +1,4 @@
-"""Hypothetical future latents (PLAN.md 9; SETUP.md 18).
+"""Hypothetical future latents (PLAN.md 9, 8).
 
     z_new = z_boundary + delta * v + epsilon,   epsilon ~ N(0, sigma^2 Sigma_local)
 
@@ -88,7 +88,7 @@ class LatentSampler:
         """Draw one hypothetical acquisition batch for an allocation `n`.
 
         Returns the concatenated latents of the whole composition, which is what
-        the batch utility model must score jointly (SETUP.md 18).
+        the batch utility model must score jointly (PLAN.md 8).
         """
         allocation = np.asarray(allocation, dtype=np.int64)
         if len(allocation) != len(directions):

@@ -26,7 +26,7 @@ def set_seed(seed: int, deterministic: bool = True) -> None:
 
 
 class SeedBundle:
-    """SETUP.md 24: the five seed roles are recorded independently.
+    """PLAN.md 21: the five seed roles are recorded independently.
 
     Derived seeds stay stable for a given base seed so that, e.g., changing the
     acquisition search seed does not perturb data generation.
@@ -117,6 +117,84 @@ def save_json(obj: Any, path: str | Path) -> None:
 def load_json(path: str | Path) -> Any:
     with open(path) as f:
         return json.load(f)
+
+
+def git_sha(short: bool = False) -> str:
+    """Current commit, with `-dirty` when the tree has uncommitted changes.
+
+    PLAN.md 15 P1 and 21 require the SHA on every run. `unknown` rather than an
+    exception if this is not a git checkout, so recording provenance can never
+    be the thing that kills an experiment.
+    """
+    import subprocess
+
+    try:
+        root = Path(__file__).resolve().parents[1]
+        rev = subprocess.run(
+            ["git", "rev-parse", "--short" if short else "HEAD"],
+            cwd=root, capture_output=True, text=True, timeout=10,
+        )
+        if rev.returncode != 0:
+            return "unknown"
+        sha = rev.stdout.strip()
+        dirty = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=root, capture_output=True, text=True, timeout=10,
+        )
+        return sha + ("-dirty" if dirty.stdout.strip() else "")
+    except Exception:
+        return "unknown"
+
+
+def run_provenance(extra: dict | None = None) -> dict:
+    """Everything needed to say what produced a result (PLAN.md 21).
+
+    Recorded once per run and written into the report next to the numbers, so a
+    figure can always be traced back to the code and environment that made it.
+    """
+    import platform
+    import sys
+
+    def _ver(mod: str) -> str:
+        try:
+            return __import__(mod).__version__
+        except Exception:
+            return "absent"
+
+    sim = {}
+    for m in ("dm_control", "mujoco", "metaworld", "gymnasium"):
+        try:
+            __import__(m)
+            sim[m] = _ver(m)
+        except Exception:
+            sim[m] = "absent"
+
+    return {
+        "git_sha": git_sha(),
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+        "torch": torch.__version__,
+        "numpy": np.__version__,
+        "cuda_available": bool(torch.cuda.is_available()),
+        "simulators": sim,
+        "conda_env": os.environ.get("CONDA_DEFAULT_ENV", "none"),
+        "command": " ".join(sys.argv),
+        **(extra or {}),
+    }
+
+
+def config_hash(cfg: dict, *parts: Any) -> str:
+    """Stable short hash of a config, for cache keys.
+
+    Sorted JSON so key order cannot change the hash, and `_jsonable` first so
+    numpy scalars and tuples hash the same as the plain values they stand for.
+    """
+    import hashlib
+
+    blob = json.dumps(
+        [_jsonable(cfg), [_jsonable(p) for p in parts]], sort_keys=True
+    )
+    return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
 def count_parameters(module: torch.nn.Module) -> int:

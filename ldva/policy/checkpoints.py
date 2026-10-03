@@ -1,4 +1,4 @@
-"""Policy checkpoints as first-class objects (PLAN.md 6; SETUP.md 11).
+"""Policy checkpoints as first-class objects (PLAN.md 6, 3.3).
 
 Effect labels are only meaningful relative to a checkpoint, so every checkpoint
 is stored together with the numeric features that the data model uses as its
@@ -14,6 +14,63 @@ from pathlib import Path
 
 import numpy as np
 import torch
+
+
+@dataclass(frozen=True)
+class PolicyContextRef:
+    """A checkpoint's continuous features *bound to* its vocabulary index.
+
+    This is the fix for PLAN.md 15 P0.4. The failure it removes was live in
+    `run_acquisition_loop.py`: the reference features came from
+    `ckpts[len(ckpts) // 2]` while `AllocationObjective`'s `ckpt_index`
+    defaulted to `0`, so the continuous features described the middle
+    checkpoint and the ID embedding described the first one. Nothing crashed -
+    the planner simply conditioned on a policy that never existed. Passing one
+    object instead of two loose arguments makes that disagreement
+    unrepresentable.
+
+    `ckpt_index is None` is the honest state for a checkpoint outside the
+    training vocabulary - a genuinely *unseen future* policy, which PLAN.md 4.2
+    says the main representation must handle. The model then conditions on the
+    continuous features alone, which is exactly the behaviour being tested.
+    """
+
+    features: np.ndarray
+    ckpt_id: str
+    ckpt_index: int | None = None
+
+    @classmethod
+    def from_checkpoint(
+        cls,
+        ckpt: "Checkpoint",
+        vocabulary: list[str] | None = None,
+        use_ckpt_id: bool = False,
+    ) -> "PolicyContextRef":
+        """Build a reference from a checkpoint.
+
+        `use_ckpt_id=False` (the default, per PLAN.md 4.2's "do not rely on
+        checkpoint-ID embeddings in the main result") drops the index even when
+        the checkpoint *is* in the vocabulary, so the main model cannot
+        memorize it. The checkpoint-ID ablation of PLAN.md 12.1 passes True.
+        """
+        idx = None
+        if use_ckpt_id and vocabulary is not None and ckpt.ckpt_id in vocabulary:
+            idx = int(vocabulary.index(ckpt.ckpt_id))
+        return cls(features=np.asarray(ckpt.features, dtype=np.float32),
+                   ckpt_id=str(ckpt.ckpt_id), ckpt_index=idx)
+
+    @property
+    def is_seen(self) -> bool:
+        """Was this checkpoint in the training vocabulary?"""
+        return self.ckpt_index is not None
+
+    def to_dict(self) -> dict:
+        return {
+            "ckpt_id": self.ckpt_id,
+            "ckpt_index": self.ckpt_index,
+            "uses_ckpt_id_embedding": self.is_seen,
+            "features": np.asarray(self.features).tolist(),
+        }
 
 
 @dataclass

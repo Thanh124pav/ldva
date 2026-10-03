@@ -1,4 +1,4 @@
-"""Behaviour-cloning policies (SETUP.md 9: start simple, MLP BC first).
+"""Behaviour-cloning policies (PLAN.md 13: start simple, MLP BC first).
 
 `hidden=()` gives a plain linear policy, which is what Stage 0 uses: its
 one-step update has a closed form, so batch gains are exact and the redundancy /

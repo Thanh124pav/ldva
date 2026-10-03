@@ -1,4 +1,4 @@
-"""Candidate acquisition directions (PLAN.md 8; SETUP.md 16).
+"""Candidate acquisition directions (PLAN.md 8, 7).
 
 For each local effect domain we take the local PCA basis, keep the smallest rank
 explaining `rho` of the variance (capped at `r_max`), and propose both signs of
@@ -9,7 +9,7 @@ it becomes a candidate:
 2. **density decreasing** - the proposal sits in sparser support than its anchor,
    so it genuinely expands coverage instead of thickening what we already own;
 3. **trust region** - two caps, both active, because neither alone is enough
-   (PLAN.md 19/F5, SETUP.md 16):
+   (PLAN.md 19/F5, PLAN.md 7):
    - *relative*: the nearest observed sample is within
      `epsilon_expand_scale * delta`. Stepping `delta` beyond a boundary anchor
      normally leaves you about `delta` from the support, so a much larger
@@ -54,7 +54,7 @@ class AcquisitionDirection:
     outward_score: float = 0.0
     density_ratio: float = 1.0
     support_distance: float = 0.0
-    #: monetary cost per acquired trajectory along this direction (SETUP.md 31)
+    #: monetary cost per acquired trajectory along this direction (PLAN.md 10)
     cost: float = 1.0
     source: str = "pca"
     extra: dict = field(default_factory=dict)

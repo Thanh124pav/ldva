@@ -1,4 +1,4 @@
-"""Stage 1 adapter: PushT low-dimensional (SETUP.md 5)."""
+"""Stage 1 adapter: PushT low-dimensional (PLAN.md 13)."""
 
 from __future__ import annotations
 
@@ -18,8 +18,8 @@ class PushTAdapter(NotImplementedAdapter):
         "trajectory into chunks of chunk_len (test 8 / 16 / 32).",
         "Record the *realized* reset state as metadata, not the requested one.",
         "Implement evaluation_set(): a fixed grid or sampled distribution over "
-        "initial states, drawn once before any acquisition (SETUP.md 33).",
-        "Use state observations only; SETUP.md 29 says do not begin with vision.",
+        "initial states, drawn once before any acquisition (PLAN.md 14).",
+        "Use state observations only; PLAN.md 15 says do not begin with vision.",
         "Everything above the adapter is reusable as-is: BCSupervisionTask "
         "takes any SampleStore plus a validation set.",
     )

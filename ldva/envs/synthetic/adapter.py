@@ -1,4 +1,4 @@
-"""Stage 0 adapter (SETUP.md 4)."""
+"""Stage 0 adapter (PLAN.md 14)."""
 
 from __future__ import annotations
 

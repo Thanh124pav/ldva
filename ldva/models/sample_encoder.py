@@ -1,4 +1,4 @@
-"""Sample encoder E_phi(x, theta_context) -> z (PLAN.md 4.1; SETUP.md 13).
+"""Sample encoder E_phi(x, theta_context) -> z (PLAN.md 4.1, 4).
 
 Deliberately *not* given the acquisition metadata. If the encoder saw `m`, the
 effect latent would collapse onto metadata geometry, and PLAN.md 5.5 is explicit

@@ -1,4 +1,4 @@
-"""DMC and MetaWorld adapters (PLAN.md 15; SETUP.md 6).
+"""DMC and MetaWorld adapters (PLAN.md 15, 14).
 
 These run against real simulators, so they are kept small and are skipped
 cleanly when the package is absent - the LDVA core must stay testable without
@@ -136,7 +136,7 @@ def mw():
 
 
 def test_metaworld_uses_v3_tasks_and_declares_the_deviation(mw):
-    """metaworld 3.1.1 has no v2 environments, so SETUP.md 6's names shift."""
+    """metaworld 3.1.1 has no v2 environments, so PLAN.md 14's names shift."""
     rep = mw.report()
     assert all(t.endswith("-v3") for t in rep["tasks"])
     assert "v3" in rep["note"]

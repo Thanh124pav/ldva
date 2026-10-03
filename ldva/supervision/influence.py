@@ -1,4 +1,4 @@
-"""Influence-function effect targets (SETUP.md 12, "medium").
+"""Influence-function effect targets (PLAN.md 3.2, "medium").
 
 Classical first-order influence of training point i on validation utility:
 

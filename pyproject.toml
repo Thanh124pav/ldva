@@ -19,7 +19,7 @@ dependencies = [
 
 [project.optional-dependencies]
 logging = ["wandb>=0.16", "pandas>=2.0"]
-dev = ["pytest>=7.4"]
+dev = ["pytest>=7.4", "ruff>=0.5"]
 
 [tool.setuptools.packages.find]
 include = ["ldva*"]
@@ -27,3 +27,26 @@ include = ["ldva*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 96
+target-version = "py310"
+extend-exclude = ["runs", ".cache"]
+
+[tool.ruff.lint]
+# F821 (undefined name) is the rule that matters most here. A long experiment
+# script can carry a name that only resolves in the caller's scope and still
+# compile, then die hours in - which is exactly what happened when a reference
+# to the policy context was moved into `_small_problem_check`, a branch that
+# only runs when the candidate set is too large for exact search. `py_compile`
+# cannot catch that; this does.
+select = ["F", "E4", "E7", "E9", "I"]
+ignore = [
+    "E741",  # `l`/`I` as names: used for link lengths in the DMC kinematics
+]
+
+[tool.ruff.lint.per-file-ignores]
+# experiment scripts insert the repo root on sys.path before importing ldva,
+# so their imports are deliberately not at the top of the file
+"experiments/**" = ["E402"]
+"tests/**" = ["E402"]

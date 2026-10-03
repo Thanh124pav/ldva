@@ -1,4 +1,4 @@
-"""The LDVA pipeline on any environment (SETUP.md 29, 30, 37).
+"""The LDVA pipeline on any environment (PLAN.md 15, 14, 11).
 
 `run_stage0.py` is the synthetic gate and keeps its ground-truth oracle. This
 script is the same pipeline driven entirely through `EnvAdapter`, so it runs on
@@ -8,7 +8,7 @@ a real simulator:
     python experiments/run_pipeline.py --env metaworld
     python experiments/run_pipeline.py --env synthetic --quick
 
-It evaluates the five criteria of SETUP.md 30 that need no privileged access to
+It evaluates the five criteria of PLAN.md 14 that need no privileged access to
 the generative process (1, 2, 4, 5, 6) - every one of them only needs the
 adapter's `collect`, which is why they transfer from the synthetic world to a
 simulator unchanged.
@@ -21,7 +21,6 @@ import sys
 from pathlib import Path
 
 import numpy as np
-import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -59,6 +58,7 @@ from ldva.data.context_dataset import ContextDataset  # noqa: E402
 from ldva.data.effect_profiles import EffectProfileTable  # noqa: E402
 from ldva.envs import get_adapter  # noqa: E402
 from ldva.models.datamodel import LDVAConfig, LDVADataModel  # noqa: E402
+from ldva.policy.checkpoints import PolicyContextRef  # noqa: E402
 from ldva.policy.evaluate import evaluate_bc  # noqa: E402
 from ldva.policy.train import BCTrainConfig, train_bc  # noqa: E402
 from ldva.supervision.bc_task import BCSupervisionTask  # noqa: E402
@@ -166,14 +166,23 @@ def main() -> dict:
         f"{report['supervision']['coverage']['contexts_per_sample_mean']:.1f} per sample")
 
     # ---- 4. data model + additive ablation -------------------------------
-    train_ds, val_ds = ds.split(0.2, seed=seeds["context"], by="context")
+    # PLAN.md 4.2 / 15 P0.4: hold out whole CHECKPOINTS. A context split only
+    # tests transfer to an unseen batch composition; the claim that matters is
+    # transfer to an unseen future policy.
+    train_ds, val_ds = ds.split(
+        0.2, seed=seeds["context"], by=cfg.get("val_split_by", "checkpoint"))
     table = EffectProfileTable(train_ds.records, len(store), min_shared=2)
+
+    # PLAN.md 15 P0.4: no checkpoint-ID embedding in the main model. With one,
+    # the policy context can memorize the checkpoints it saw and defines
+    # nothing for an unseen future policy.
+    n_ckpt_vocab = train_ds.n_checkpoints if cfg.get("ckpt_id_ablation") else 0
 
     def build(**kwm):
         return LDVADataModel(LDVAConfig.build(
             obs_dim=store.obs_dim, act_dim=store.act_dim, chunk_len=store.chunk_len,
             meta_dim=store.meta_dim, policy_feat_dim=ds.policy_feat_dim,
-            n_checkpoints=ds.n_checkpoints, latent_dim=cfg["latent_dim"],
+            n_checkpoints=n_ckpt_vocab, latent_dim=cfg["latent_dim"],
             hidden=tuple(cfg["hidden"]), **kwm))
 
     tcfg = TrainConfig(epochs=cfg["epochs"], eval_every=max(cfg["epochs"] // 3, 1),
@@ -203,8 +212,13 @@ def main() -> dict:
     report["ablations"] = abl
 
     # ---- 5. latent geometry ----------------------------------------------
+    # P0.4: features and vocabulary index travel together so they cannot
+    # describe different checkpoints
     ref = ckpts[len(ckpts) // 2]
-    z_all = model.encode_store(store, ref.features)
+    pctx = PolicyContextRef.from_checkpoint(
+        ref, train_ds.checkpoint_ids, use_ckpt_id=bool(cfg.get("ckpt_id_ablation")))
+    report["policy_context"] = pctx.to_dict()
+    z_all = model.encode_store(store, pctx.features, ckpt_index=pctx.ckpt_index)
     model.set_dataset_context(z_all)
     geo = latent_geometry_report(z_all, records, table, n_clusters=cfg["n_clusters"],
                                  gate=GeometryGate(), seed=seeds["latent"])
@@ -239,7 +253,7 @@ def main() -> dict:
     sampler = LatentSampler(clusters, LatentSamplerConfig(sigma=0.3, seed=seeds["acquisition"]))
     budget = BudgetSpec.from_directions(directions, budget=cfg["budget"])
     objective = AllocationObjective(model, sampler, directions, budget,
-                                    policy_features=ref.features,
+                                    policy_context=pctx,
                                     cfg=ObjectiveConfig(n_mc=cfg["n_mc"],
                                                         seed=seeds["acquisition"]))
     space = n_allocations(len(directions), cfg["budget"])
@@ -327,7 +341,7 @@ def main() -> dict:
 
 
 def _criteria(report: dict, solvers: dict) -> dict:
-    """The SETUP.md 30 criteria that need no privileged generative access."""
+    """The PLAN.md 14 criteria that need no privileged generative access."""
     final = report["datamodel"]["final_val"]
     abl = report["ablations"]
     geo = report["latent_geometry"]
@@ -375,7 +389,7 @@ def _criteria(report: dict, solvers: dict) -> dict:
 
 def _print(crit: dict, env: str, out_dir: Path) -> None:
     print("\n" + "=" * 78)
-    print(f"LDVA PIPELINE ON {env.upper()} - SETUP.md 30 criteria")
+    print(f"LDVA PIPELINE ON {env.upper()} - PLAN.md 14 criteria")
     print("=" * 78)
     n = 0
     for k, c in crit.items():

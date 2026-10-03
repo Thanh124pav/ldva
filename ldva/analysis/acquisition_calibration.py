@@ -1,4 +1,4 @@
-"""Predicted vs realized acquisition gain (PLAN.md 17.2; SETUP.md 22).
+"""Predicted vs realized acquisition gain (PLAN.md 17.2, 18).
 
 The central question is *not* whether absolute predicted gains are right. It is
 whether candidate acquisition compositions are ranked correctly, because that is
@@ -63,7 +63,7 @@ def calibration_report(records: list[CalibrationRecord], top_k: int = 3) -> dict
 
 
 def cost_efficiency_report(records: list[CalibrationRecord]) -> dict:
-    """Realized gain per unit cost (SETUP.md 31, 35)."""
+    """Realized gain per unit cost (PLAN.md 10, 18)."""
     out = {}
     for r in records:
         if r.cost > 0:
@@ -78,7 +78,7 @@ def cost_efficiency_report(records: list[CalibrationRecord]) -> dict:
 def cost_to_target(
     costs: np.ndarray, performance: np.ndarray, target: float
 ) -> float:
-    """Cost at which performance first reaches `target` (SETUP.md 35).
+    """Cost at which performance first reaches `target` (PLAN.md 18).
 
     Linearly interpolates between the two bracketing points, and returns `inf`
     when the target is never reached so the caller cannot mistake a truncated

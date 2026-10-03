@@ -1,4 +1,4 @@
-"""Cheap effect targets (SETUP.md 12, "cheap").
+"""Cheap effect targets (PLAN.md 3.2, "cheap").
 
 Three proxies, all first order and all computable from one backward pass per
 sample:
@@ -69,7 +69,7 @@ class GradientAlignmentEstimator(EffectEstimator):
 
 
 class ValidationGradientAlignmentEstimator(GradientAlignmentEstimator):
-    """Alias kept explicit because SETUP.md 12 lists it as its own target."""
+    """Alias kept explicit because PLAN.md 3.2 lists it as its own target."""
 
     def __init__(self, lr: float = 0.1):
         super().__init__(mode="dot", lr=lr)

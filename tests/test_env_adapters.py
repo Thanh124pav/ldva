@@ -1,4 +1,4 @@
-"""The environment seam (SETUP.md 37).
+"""The environment seam (PLAN.md 11).
 
 Stages 1-6 are not wired up. What these tests guarantee is that the seam itself
 is correct: the synthetic adapter satisfies the contract, and the unimplemented
@@ -38,7 +38,7 @@ def test_unimplemented_adapters_explain_themselves(name):
     with pytest.raises(NotImplementedError) as e:
         a.metadata_spec
     msg = str(e.value)
-    assert "SETUP.md section" in msg
+    assert "PLAN.md section" in msg
     assert "To implement this adapter" in msg
     assert a.policy_defaults()["kind"] in ("mlp_bc", "sac", "ppo")
 

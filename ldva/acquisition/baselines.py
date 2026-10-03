@@ -1,17 +1,30 @@
-"""Acquisition baselines (SETUP.md 20, 34; PLAN.md 16).
+"""LDVA **internal ablations** (PLAN.md 12.1).
 
-Every baseline returns an allocation over the *same* candidate directions under
-the *same* budget, so a comparison isolates the allocation rule. Where a method
-was published with its own pipeline we reimplement the algorithmic principle and
-name the deviation in the docstring, as SETUP.md 20 instructs - none of these
-claim to reproduce the original papers' numbers.
+Despite the filename, nothing in this module is a published baseline. Every
+scoring rule here reads its per-direction score out of the LDVA data model -
+`model.effect_from_latents` or `model.utility_from_latents` applied to
+hypothetical latents - so each one inherits LDVA's representation, its learned
+readout and its sampler, and differs from LDVA only in how one scalar per
+direction becomes an allocation. That makes them clean ablations of the
+set-level planner and nothing more.
 
-The scoring baselines (uncertainty, gradient norm, gradient alignment,
-influence) need a per-direction score. They get it from the LDVA data model's
-*per-sample* readout applied to hypothetical latents, which is the fairest
-available stand-in: it gives each baseline the same representation and the same
-hypothetical future samples, and the only thing that differs is how a score is
-turned into an allocation.
+PLAN.md 12.1 is explicit about the consequence:
+
+    Do **not** present them as reproductions of published methods.
+
+The `*_style` names record which published *principle* each rule borrows, and
+each docstring names the deviation. Independent baselines, which compute their
+own scores from their own assumptions without consulting the LDVA model, live
+in `ldva/acquisition/external_baselines.py` and are the ones PLAN.md 12.2 asks
+for.
+
+`random`, `equal` and `diversity` are the exception within this file: none of
+them queries the model at all - random ignores it by construction and core-set
+coverage uses only distances - so they are independent of LDVA predictions and
+`classify_method` tags them `model_free`.
+
+Every rule returns an allocation over the *same* candidate directions under the
+*same* budget, so a comparison isolates the allocation rule.
 """
 
 from __future__ import annotations
@@ -80,7 +93,7 @@ def _result(name: str, alloc: np.ndarray, objective: AllocationObjective, info=N
 
 
 def random_acquisition(objective: AllocationObjective, seed: int = 0) -> SolverResult:
-    """Uniform random allocation (SETUP.md 20 "Random / Uniform")."""
+    """Uniform random allocation (PLAN.md 12 "Random / Uniform")."""
     rng = np.random.default_rng(seed)
     budget = objective.budget
     alloc = np.zeros(objective.n_directions, dtype=np.int64)
@@ -93,7 +106,7 @@ def random_acquisition(objective: AllocationObjective, seed: int = 0) -> SolverR
 
 
 def equal_allocation(objective: AllocationObjective) -> SolverResult:
-    """Equal budget per candidate direction (SETUP.md 20 "Equal allocation")."""
+    """Equal budget per candidate direction (PLAN.md 12 "Equal allocation")."""
     alloc = uniform_allocation(objective.n_directions, objective.budget.budget)
     while not objective.budget.feasible(alloc) and alloc.sum() > 0:
         alloc[int(np.argmax(alloc))] -= 1
@@ -307,7 +320,7 @@ def predicted_utility_greedy_acquisition(
 
 @dataclass
 class BaselineSuite:
-    """Run the SETUP.md 20 minimum baseline suite in one call."""
+    """Run the PLAN.md 12 minimum baseline suite in one call."""
 
     z_support: np.ndarray
     n_draw: int = 32

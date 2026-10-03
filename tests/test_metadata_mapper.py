@@ -1,4 +1,4 @@
-"""Latent direction -> metadata inversion (PLAN.md 12, 24; SETUP.md 17).
+"""Latent direction -> metadata inversion (PLAN.md 12, 24, 7.3).
 
 The mapper is tested against a world whose metadata-to-latent map is known
 analytically, so "did it recover the right perturbation" is checkable.
@@ -149,7 +149,7 @@ def test_plans_are_feasible_and_anchor_matched(world, store, datamodel, trained_
 
 def test_actionability_filter_drops_unachievable_directions(world, store, datamodel,
                                                             trained_policy):
-    """SETUP.md 16's fourth filter. A strict threshold must keep a subset of a
+    """PLAN.md 7's fourth filter. A strict threshold must keep a subset of a
     loose one, and the kept directions must beat the threshold."""
     _, ckpts = trained_policy
     z = datamodel.encode_store(store, ckpts[1].features)

@@ -1,4 +1,4 @@
-# SETUP.md 9: start simple. hidden: [] is a linear policy, which is what
+# PLAN.md 13: start simple. hidden: [] is a linear policy, which is what
 # Stage 0 uses so that one-step updates have a closed form.
 kind: mlp_bc
 hidden: []

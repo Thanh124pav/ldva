@@ -1,4 +1,4 @@
-"""Beam-search allocation (PLAN.md 11.2; SETUP.md 19).
+"""Beam-search allocation (PLAN.md 11.2, 9).
 
 The primary practical planner. It keeps the `H` best partial allocations at each
 step, so unlike greedy it can hold on to a composition that only pays off once
@@ -89,7 +89,7 @@ def beam_width_sweep(
     widths: tuple[int, ...] = (5, 10, 20, 50),
     progress: bool = False,
 ) -> dict:
-    """SETUP.md 19 initial beam widths, reported together.
+    """PLAN.md 9 initial beam widths, reported together.
 
     The objective cache is kept across widths on purpose: evaluation counts then
     show the *incremental* cost of a wider beam.

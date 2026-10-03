@@ -1,4 +1,4 @@
-"""Exact allocation search (PLAN.md 11.1; SETUP.md 19).
+"""Exact allocation search (PLAN.md 11.1, 9).
 
 Enumerates every feasible allocation. This is the *oracle optimum under the
 learned utility model* - not the true optimum - and its only jobs are to give

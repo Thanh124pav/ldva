@@ -1,4 +1,4 @@
-"""Latent-geometry diagnostics (PLAN.md Phase 3, 17.1, 19; SETUP.md 14, 22).
+"""Latent-geometry diagnostics (PLAN.md Phase 3, 17.1, 19; PLAN.md 6, 18).
 
 This module exists to answer one question before any acquisition code runs:
 **is the latent geometry meaningful enough to justify clustering and directional
@@ -37,7 +37,7 @@ def pca_spectrum(z: np.ndarray) -> dict:
 
     The participation ratio is a smooth stand-in for "how many directions are
     actually used"; a value far below the latent dimension means the sweep in
-    SETUP.md 14 has already saturated.
+    PLAN.md 6 has already saturated.
     """
     z = np.asarray(z, dtype=np.float64)
     zc = z - z.mean(0, keepdims=True)

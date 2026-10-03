@@ -1,4 +1,4 @@
-"""Acquisition metadata (SETUP.md 10, 17, 36; PLAN.md 12).
+"""Acquisition metadata (PLAN.md 3.1, 7.3, 14, 12).
 
 Metadata is the *actionable* side of acquisition: the planner picks a latent
 direction, and the metadata mapper has to turn it into a feasible change of
@@ -23,7 +23,7 @@ class MetadataField:
     high: float
     controllable: bool = True
     discrete: bool = False
-    #: monetary cost weight; used by the cost-aware budget of SETUP.md 31.
+    #: monetary cost weight; used by the cost-aware budget of PLAN.md 10.
     cost: float = 0.0
 
     def __post_init__(self) -> None:

@@ -1,4 +1,4 @@
-"""Policy evaluation on a *fixed, pre-declared* distribution (SETUP.md 33)."""
+"""Policy evaluation on a *fixed, pre-declared* distribution (PLAN.md 14)."""
 
 from __future__ import annotations
 

@@ -11,6 +11,7 @@ import numpy as np
 
 from ldva.acquisition.clustering import ClusteringConfig, LatentClustering
 from ldva.acquisition.directions import DirectionConfig, DirectionGenerator
+from ldva.acquisition.greedy import greedy_search
 from ldva.acquisition.latent_sampler import LatentSampler, LatentSamplerConfig
 from ldva.acquisition.metadata_mapper import (
     ActionabilityConfig,
@@ -19,7 +20,6 @@ from ldva.acquisition.metadata_mapper import (
     filter_actionable_directions,
 )
 from ldva.acquisition.objective import AllocationObjective, BudgetSpec, ObjectiveConfig
-from ldva.acquisition.greedy import greedy_search
 
 
 def test_metadata_to_latent_map_is_smooth_and_differentiable(world):

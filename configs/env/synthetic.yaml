@@ -1,12 +1,12 @@
-# Stage 0 synthetic world (SETUP.md 4, 37).
-# The gate before any robotics work: SETUP.md 4 says do not move on if it fails.
+# Stage 0 synthetic world (PLAN.md 14, 11).
+# The gate before any robotics work: PLAN.md 14 says do not move on if it fails.
 name: synthetic
 world:
   meta_dim: 3            # object_x, object_y, difficulty
   latent_dim: 4          # true hidden effect factors
   obs_dim: 6
   act_dim: 2
-  chunk_len: 8           # SETUP.md 5 sweeps 8 / 16 / 32
+  chunk_len: 8           # PLAN.md 13 sweeps 8 / 16 / 32
   obs_noise: 0.35
   act_noise: 0.05
   map_scale: 1.2         # locality of the metadata -> latent map

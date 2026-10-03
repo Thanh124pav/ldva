@@ -1,7 +1,7 @@
-"""Stage 0: synthetic sanity test (SETUP.md 4, 29, 30; PLAN.md 20 Phase 0).
+"""Stage 0: synthetic sanity test (PLAN.md 14, 15, 20 Phase 0).
 
 Runs the whole LDVA pipeline on the synthetic world and checks the six success
-criteria of SETUP.md 30 explicitly. SETUP.md 4 is blunt about the purpose:
+criteria of PLAN.md 14 explicitly. PLAN.md 14 is blunt about the purpose:
 "Do not move to robotics if this fails", so this script's real output is the
 pass/fail table at the end, not the plots.
 
@@ -49,6 +49,7 @@ from ldva.analysis.acquisition_calibration import (  # noqa: E402
     calibration_report,
 )
 from ldva.analysis.latent_geometry import GeometryGate, latent_geometry_report  # noqa: E402
+from ldva.analysis.wandb_logger import make_logger  # noqa: E402
 from ldva.data.context_dataset import ContextDataset  # noqa: E402
 from ldva.data.effect_profiles import EffectProfileTable  # noqa: E402
 from ldva.envs.synthetic.generator import SyntheticConfig, SyntheticWorld  # noqa: E402
@@ -58,6 +59,7 @@ from ldva.envs.synthetic.oracle import (  # noqa: E402
     measure_realized_latent_movement,
 )
 from ldva.models.datamodel import LDVAConfig, LDVADataModel  # noqa: E402
+from ldva.policy.checkpoints import PolicyContextRef  # noqa: E402
 from ldva.policy.evaluate import evaluate_bc  # noqa: E402
 from ldva.policy.train import BCTrainConfig, train_bc  # noqa: E402
 from ldva.supervision.bc_task import BCSupervisionTask  # noqa: E402
@@ -69,7 +71,13 @@ from ldva.supervision.gradient_alignment import GradientAlignmentEstimator  # no
 from ldva.supervision.leave_one_out import LeaveOneOutEstimator  # noqa: E402
 from ldva.training.losses import LossWeights  # noqa: E402
 from ldva.training.train_datamodel import TrainConfig, train_datamodel  # noqa: E402
-from ldva.utils import SeedBundle, load_config, save_json, set_seed  # noqa: E402
+from ldva.utils import (  # noqa: E402
+    SeedBundle,
+    load_config,
+    run_provenance,
+    save_json,
+    set_seed,
+)
 
 DEFAULTS = dict(
     n_samples=300,
@@ -117,7 +125,19 @@ def main() -> dict:
     ap.add_argument("--quick", action="store_true", help="small, fast settings")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--no-plots", action="store_true")
-    ap.add_argument("--wandb", action="store_true")
+    ap.add_argument("--wandb", action="store_true",
+                    help="log to Weights & Biases (PLAN.md 15 P1): the six "
+                         "criteria, the calibration scatter and the figures")
+    ap.add_argument("--wandb-project", type=str, default="ldva")
+    ap.add_argument("--wandb-group", type=str, default=None)
+    ap.add_argument("--experiment", type=str, default="E0")
+    ap.add_argument("--ckpt-id-ablation", action="store_true",
+                    help="PLAN.md 12.1: enable the checkpoint-ID embedding. Off by "
+                         "default because PLAN.md 4.2 forbids relying on it in the "
+                         "main result.")
+    ap.add_argument("--val-split-by", type=str, default=None,
+                    choices=("checkpoint", "context"),
+                    help="held-out checkpoints (default, PLAN.md 4.2) or contexts")
     args = ap.parse_args()
 
     cfg = dict(DEFAULTS)
@@ -126,15 +146,43 @@ def main() -> dict:
     if args.config:
         file_cfg = load_config(args.config)
         cfg.update(file_cfg.get("stage0", file_cfg))
+    if args.ckpt_id_ablation:
+        cfg["ckpt_id_ablation"] = True
+    if args.val_split_by:
+        cfg["val_split_by"] = args.val_split_by
     cfg["seed"] = args.seed
 
     seeds = SeedBundle(cfg["seed"])
     set_seed(seeds["latent"])
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
+    prov = run_provenance({"experiment": args.experiment})
     report: dict = {"config": {k: (list(v) if isinstance(v, tuple) else v) for k, v in cfg.items()},
-                    "seeds": seeds.as_dict()}
+                    "seeds": seeds.as_dict(),
+                    "provenance": prov}
     say = lambda m: print(f"[stage0] {m}", flush=True)  # noqa: E731
+
+    # Opened before the data model trains so the per-epoch losses and the final
+    # criteria share one run; `--quick` is tagged so a smoke run can never be
+    # mistaken for a measurement in the wandb runs table (PLAN.md 17).
+    log = make_logger(
+        enabled=bool(args.wandb),
+        project=args.wandb_project,
+        name=f"{args.experiment}-stage0-s{cfg['seed']}"
+             + ("-quick" if args.quick else "")
+             + ("-ckptid" if cfg.get("ckpt_id_ablation") else ""),
+        group=args.wandb_group or f"{args.experiment}-stage0",
+        job_type="quick" if args.quick else "full",
+        config={**{k: (list(v) if isinstance(v, tuple) else v) for k, v in cfg.items()},
+                **{f"prov/{k}": v for k, v in prov.items()
+                   if isinstance(v, (str, int, float, bool))}},
+        tags=("synthetic", args.experiment,
+              "quick" if args.quick else "full",
+              "ckpt_id_ablation" if cfg.get("ckpt_id_ablation") else "no_ckpt_id"),
+    )
+    log.define_steps({"datamodel/epoch": None, "datamodel/*": "datamodel/epoch"})
+    if args.wandb:
+        say(f"wandb: {log.url or 'init failed; continuing without logging'}")
 
     # ---- 1. world, incomplete initial dataset, fixed evaluation set -------
     world = SyntheticWorld(SyntheticConfig(seed=seeds["env"]))
@@ -177,20 +225,29 @@ def main() -> dict:
         f"{report['supervision']['coverage']['contexts_per_sample_mean']:.1f} per sample")
 
     # ---- 4. data model --------------------------------------------------
-    train_ds, val_ds = ds.split(0.2, seed=seeds["context"], by="context")
+    # PLAN.md 4.2 / 15 P0.4: held-out CHECKPOINTS, the honest policy-transfer
+    # test, rather than held-out batch compositions
+    train_ds, val_ds = ds.split(
+        0.2, seed=seeds["context"], by=cfg.get("val_split_by", "checkpoint"))
     table = EffectProfileTable(train_ds.records, len(store), min_shared=2)
     report["effect_table"] = table.report()
+
+    # PLAN.md 15 P0.4: the main model carries no checkpoint-ID embedding
+    n_ckpt_vocab = train_ds.n_checkpoints if cfg.get("ckpt_id_ablation") else 0
 
     def build(readout="contextual", utility="deepsets", **kw):
         return LDVADataModel(LDVAConfig.build(
             obs_dim=store.obs_dim, act_dim=store.act_dim, chunk_len=store.chunk_len,
             meta_dim=store.meta_dim, policy_feat_dim=ds.policy_feat_dim,
-            n_checkpoints=ds.n_checkpoints, latent_dim=cfg["latent_dim"],
+            n_checkpoints=n_ckpt_vocab, latent_dim=cfg["latent_dim"],
             hidden=tuple(cfg["hidden"]), readout_kind=readout, utility_kind=utility, **kw))
 
     tcfg = TrainConfig(epochs=cfg["epochs"], eval_every=max(cfg["epochs"] // 4, 1),
                        seed=seeds["latent"], weights=LossWeights(1.0, 1.0, 0.1, 0.01),
-                       wandb=args.wandb, wandb_run_name=f"stage0_seed{cfg['seed']}")
+                       # attach to the run opened at the top of main(), so the
+                       # per-epoch losses and the final criteria land in ONE run
+                       wandb=log.active, wandb_attach=True,
+                       wandb_prefix="datamodel/")
     model = build()
     model.set_dataset_context(np.zeros((8, cfg["latent_dim"])))
     model, hist = train_datamodel(model, train_ds, val_ds, tcfg, table,
@@ -214,8 +271,14 @@ def main() -> dict:
     report["ablations"] = abl
 
     # ---- 5. latent geometry gate ----------------------------------------
+    # P0.4: the reference checkpoint's features and its vocabulary index travel
+    # as one object, so they cannot describe different checkpoints
     ref_ckpt = ckpts[len(ckpts) // 2]
-    z_all = model.encode_store(store, ref_ckpt.features)
+    pctx = PolicyContextRef.from_checkpoint(
+        ref_ckpt, train_ds.checkpoint_ids,
+        use_ckpt_id=bool(cfg.get("ckpt_id_ablation")))
+    report["policy_context"] = pctx.to_dict()
+    z_all = model.encode_store(store, pctx.features, ckpt_index=pctx.ckpt_index)
     model.set_dataset_context(z_all)
     geo = latent_geometry_report(z_all, records, table, n_clusters=cfg["n_clusters"],
                                  gate=GeometryGate(), seed=seeds["latent"])
@@ -235,7 +298,7 @@ def main() -> dict:
     if not directions:
         raise RuntimeError("no candidate directions survived the filters; relax DirectionConfig")
 
-    # SETUP.md 16's fourth filter: a latent direction is only a candidate if
+    # PLAN.md 7's fourth filter: a latent direction is only a candidate if
     # some feasible metadata change can actually produce it. The mapper has to
     # be fitted first, so this happens here rather than inside the generator.
     mapper = MetadataMapper(world.metadata_spec, MetadataMapperConfig(seed=seeds["acquisition"]))
@@ -259,7 +322,7 @@ def main() -> dict:
     sampler = LatentSampler(clusters, LatentSamplerConfig(sigma=0.3, seed=seeds["acquisition"]))
     budget = BudgetSpec.from_directions(directions, budget=cfg["budget"])
     objective = AllocationObjective(model, sampler, directions, budget,
-                                    policy_features=ref_ckpt.features,
+                                    policy_context=pctx,
                                     cfg=ObjectiveConfig(n_mc=cfg["n_mc"], seed=seeds["acquisition"]))
     space = n_allocations(len(directions), cfg["budget"])
     solvers = {}
@@ -279,7 +342,7 @@ def main() -> dict:
     # than skip the check: the top-scoring directions under a reduced budget,
     # sized so enumeration is affordable.
     small = _small_problem_check(
-        objective, model, sampler, directions, ref_ckpt,
+        objective, model, sampler, directions, pctx,
         cfg, seeds, say) if "exact" not in solvers else None
     if small is not None:
         report["small_problem_exact_check"] = small
@@ -333,7 +396,7 @@ def main() -> dict:
     r = report["calibration"]["report"]
     say(f"calibration: spearman(predicted, realized)={r['spearman']:+.3f} over {len(calib)} compositions")
 
-    # ---- 11. success criteria (SETUP.md 30) ------------------------------
+    # ---- 11. success criteria (PLAN.md 14) ------------------------------
     crit = _success_criteria(report, solvers, calib, cfg)
     report["success_criteria"] = crit
 
@@ -351,8 +414,63 @@ def main() -> dict:
         report["figures"] = str(pdir)
 
     save_json(report, out_dir / "stage0_report.json")
+    _log_stage0(log, report, crit, calib)
     _print_criteria(crit, out_dir)
     return report
+
+
+def _log_stage0(log, report: dict, crit: dict, calib: list) -> None:
+    """Send the gate's verdict to wandb, not just the training curves.
+
+    The six criteria *are* the Stage 0 result; the per-epoch data-model losses
+    are only how it got there. Logging the criteria as a table plus
+    pass/fail summary fields is what makes a seed sweep readable in the runs
+    table - `criteria_passed` and `criterion_5_passed` become sortable columns,
+    so a reproducible failure on one criterion is visible at a glance instead
+    of requiring six JSON files to be opened.
+    """
+    if not log.active:
+        return
+    log.table(
+        "success_criteria",
+        ["criterion", "passed", "rule"],
+        [[k, bool(v["passed"]), str(v.get("rule", ""))] for k, v in crit.items()],
+    )
+    log.table(
+        "calibration",
+        ["composition", "predicted", "realized"],
+        [[str(c.label), float(c.predicted), float(c.realized)] for c in calib],
+    )
+    d = report.get("datamodel", {}).get("final_val", {})
+    g = report.get("latent_geometry", {})
+    cal = report.get("calibration", {}).get("report", {})
+    mc = report.get("metadata_control", {})
+    flat = {
+        "criteria_passed": sum(1 for v in crit.values() if v["passed"]),
+        "criteria_total": len(crit),
+        "all_criteria_passed": all(v["passed"] for v in crit.values()),
+        "effect_spearman": d.get("effect_spearman", float("nan")),
+        "effect_gain_over_scalar": d.get("effect_gain_over_scalar", float("nan")),
+        "gain_within_r2": d.get("gain_within_r2", float("nan")),
+        "neighbor_consistency_ratio": g.get("neighbor", {}).get(
+            "neighbor_consistency_ratio", float("nan")),
+        "additive_r2_heldout": g.get("additivity", {}).get(
+            "additive_r2_heldout", float("nan")),
+        "composition_signal_share": g.get("gain_signal", {}).get(
+            "gain_within_group_share", float("nan")),
+        "calibration_spearman": cal.get("spearman", float("nan")),
+        "direction_cosine_mean": mc.get("direction_cosine_mean", float("nan")),
+        "frac_directions_positive": mc.get("frac_directions_positive", float("nan")),
+    }
+    for i, (k, v) in enumerate(crit.items(), start=1):
+        flat[f"criterion_{i}_passed"] = bool(v["passed"])
+    log.log(flat)
+    log.summary(flat)
+    fig = report.get("figures")
+    if fig:
+        for png in sorted(Path(fig).glob("*.png")):
+            log.image(png.stem, png)
+    log.finish()
 
 
 def _beam_over_greedy(solvers: dict) -> float:
@@ -365,8 +483,8 @@ def _beam_over_greedy(solvers: dict) -> float:
     return float((max(beams) - g) / max(abs(g), 1e-12))
 
 
-def _small_problem_check(objective, model, sampler, directions, ref_ckpt, cfg, seeds, say):
-    """Exact vs beam on a deliberately small sub-problem (SETUP.md 30 crit. 4).
+def _small_problem_check(objective, model, sampler, directions, pctx, cfg, seeds, say):
+    """Exact vs beam on a deliberately small sub-problem (PLAN.md 14 crit. 4).
 
     Directions are ranked by their own one-unit marginal utility and the top few
     kept, with the budget reduced until `C(B + A - 1, A - 1)` is affordable.
@@ -390,7 +508,7 @@ def _small_problem_check(objective, model, sampler, directions, ref_ckpt, cfg, s
                 sub_budget = BudgetSpec.from_directions(subset, budget=budget)
                 sub_obj = AllocationObjective(
                     model, sampler, subset, sub_budget,
-                    policy_features=ref_ckpt.features,
+                    policy_context=pctx,
                     cfg=ObjectiveConfig(n_mc=cfg["n_mc"], seed=seeds["acquisition"]))
                 ex = exact_search(sub_obj)
                 gr = greedy_search(sub_obj)
@@ -416,7 +534,7 @@ def _small_problem_check(objective, model, sampler, directions, ref_ckpt, cfg, s
 
 
 def _success_criteria(report: dict, solvers: dict, calib: list, cfg: dict) -> dict:
-    """The six criteria of SETUP.md 30, each with the number behind it."""
+    """The six criteria of PLAN.md 14, each with the number behind it."""
     final = report["datamodel"]["final_val"]
     abl = report["ablations"]
     geo = report["latent_geometry"]
@@ -521,7 +639,7 @@ def _success_criteria(report: dict, solvers: dict, calib: list, cfg: dict) -> di
 
 def _print_criteria(crit: dict, out_dir: Path) -> None:
     print("\n" + "=" * 78)
-    print("STAGE 0 SUCCESS CRITERIA (SETUP.md 30)")
+    print("STAGE 0 SUCCESS CRITERIA (PLAN.md 14)")
     print("=" * 78)
     n_pass = 0
     for key, c in crit.items():
@@ -539,7 +657,7 @@ def _print_criteria(crit: dict, out_dir: Path) -> None:
     print(f"  {n_pass}/6 criteria passed")
     print(f"  report: {out_dir / 'stage0_report.json'}")
     if n_pass < 6:
-        print("  SETUP.md 4: do not move to robotics until Stage 0 passes.")
+        print("  PLAN.md 14: do not move to robotics until Stage 0 passes.")
     print("=" * 78 + "\n")
 
 

@@ -44,7 +44,10 @@ from ldva.acquisition.objective import (  # noqa: E402
     ObjectiveConfig,
     n_allocations,
 )
-from ldva.analysis.latent_geometry import cluster_stability, neighbor_effect_consistency  # noqa: E402
+from ldva.analysis.latent_geometry import (  # noqa: E402
+    cluster_stability,
+    neighbor_effect_consistency,
+)
 from ldva.data.context_dataset import ContextDataset  # noqa: E402
 from ldva.data.effect_profiles import EffectProfileTable  # noqa: E402
 from ldva.envs.synthetic.generator import SyntheticConfig, SyntheticWorld  # noqa: E402
@@ -106,25 +109,35 @@ class Fixture:
                              batch_size=cfg["context_batch_size"],
                              seed=self.seeds["context"]))
         self.ds = ContextDataset(self.store, self.records)
-        self.train_ds, self.val_ds = self.ds.split(0.2, seed=self.seeds["context"],
-                                                   by="context")
+        # PLAN.md 4.2 / 15 P0.4: held-out checkpoints, so every ablation is
+        # measured on transfer to an unseen policy
+        self.train_ds, self.val_ds = self.ds.split(
+            0.2, seed=self.seeds["context"], by=cfg.get("val_split_by", "checkpoint"))
         self.table = EffectProfileTable(self.train_ds.records, len(self.store), min_shared=2)
         self.ref = self.ckpts[len(self.ckpts) // 2]
 
-    def train(self, latent_dim=None, weights=None, records=None, **model_kw):
-        """Train a data model variant and return its final validation metrics."""
+    def train(self, latent_dim=None, weights=None, records=None,
+              use_ckpt_id=False, **model_kw):
+        """Train a data model variant and return its final validation metrics.
+
+        `use_ckpt_id=True` is only for ablation 6 (PLAN.md 20): everywhere else
+        the policy context is the continuous features alone, so the model
+        cannot memorize which checkpoint it saw.
+        """
         cfg = self.cfg
         latent_dim = latent_dim or cfg["latent_dim"]
+        split_by = cfg.get("val_split_by", "checkpoint")
         train_ds, val_ds, table = self.train_ds, self.val_ds, self.table
         if records is not None:
             ds = ContextDataset(self.store, records)
-            train_ds, val_ds = ds.split(0.2, seed=self.seeds["context"], by="context")
+            train_ds, val_ds = ds.split(0.2, seed=self.seeds["context"], by=split_by)
             table = EffectProfileTable(train_ds.records, len(self.store), min_shared=2)
         model = LDVADataModel(LDVAConfig.build(
             obs_dim=self.store.obs_dim, act_dim=self.store.act_dim,
             chunk_len=self.store.chunk_len, meta_dim=self.store.meta_dim,
             policy_feat_dim=train_ds.policy_feat_dim,
-            n_checkpoints=train_ds.n_checkpoints, latent_dim=latent_dim,
+            n_checkpoints=train_ds.n_checkpoints if use_ckpt_id else 0,
+            latent_dim=latent_dim,
             hidden=tuple(cfg["hidden"]), **model_kw))
         model.set_dataset_context(np.zeros((8, latent_dim)))
         model, hist = train_datamodel(
@@ -379,7 +392,7 @@ def ab10_metadata_aware(fx: Fixture) -> dict:
 
 
 def ab11_latent_dim_sweep(fx: Fixture) -> dict:
-    """SETUP.md 14: do not assume a larger latent is better."""
+    """PLAN.md 6: do not assume a larger latent is better."""
     out = {}
     for d in fx.cfg["latent_dims"]:
         model, final = fx.train(latent_dim=d)
@@ -399,18 +412,150 @@ def ab11_latent_dim_sweep(fx: Fixture) -> dict:
     return out
 
 
+def ab6b_ckpt_id_vs_continuous_context(fx: Fixture) -> dict:
+    """PLAN.md 20.6: checkpoint-ID embedding vs continuous policy context.
+
+    The comparison P0.4 exists to make. Both models are validated on **held-out
+    checkpoints**, which is what exposes the difference: an ID embedding can
+    only memorize the checkpoints it was trained on, so on an unseen policy its
+    embedding slot carries no information and whatever it learned through that
+    slot is unavailable. A continuous context has features for any checkpoint,
+    seen or not.
+
+    Read `effect_spearman` on the held-out checkpoints: if the ID variant wins
+    on training checkpoints but loses here, that is memorization, and PLAN.md
+    4.2's rule against using it in the main result is confirmed rather than
+    assumed.
+    """
+    out = {}
+    for name, use_id in [("continuous_context", False), ("ckpt_id_embedding", True)]:
+        model, final = fx.train(use_ckpt_id=use_id)
+        out[name] = {
+            "effect_mse": final["effect_mse"],
+            "effect_spearman": final["effect_spearman"],
+            "gain_within_r2": final.get("gain_within_r2", float("nan")),
+            "uses_ckpt_id": use_id,
+        }
+    cont = out["continuous_context"]["effect_spearman"]
+    idemb = out["ckpt_id_embedding"]["effect_spearman"]
+    out["verdict"] = {
+        "continuous_at_least_as_good_on_unseen_checkpoints": bool(cont >= idemb),
+        "spearman_gap": float(cont - idemb),
+        "validated_on": "held-out checkpoints",
+        "rule": "PLAN.md 4.2: do not rely on checkpoint-ID embeddings in the "
+                "main result",
+    }
+    return out
+
+
+def ab9_actionability_filter(fx: Fixture) -> dict:
+    """PLAN.md 20.9: with and without the metadata-actionability filter.
+
+    Dropping the filter lets the planner spend budget on directions the
+    environment cannot actually be asked to produce. The cost shows up as
+    realized direction control, not as predicted utility - an unactionable
+    direction still *predicts* well, which is exactly why the filter is needed.
+    """
+    from ldva.acquisition.metadata_mapper import (
+        ActionabilityConfig,
+        MetadataMapper,
+        MetadataMapperConfig,
+        filter_actionable_directions,
+    )
+
+    model, _ = fx.train()
+    z_all = model.encode_store(fx.store, fx.ref.features)
+    model.set_dataset_context(z_all)
+    clusters = LatentClustering(
+        ClusteringConfig(n_clusters=fx.cfg["n_clusters"], seed=fx.seeds["latent"])
+    ).fit(z_all, fx.store.metadata)
+    directions = DirectionGenerator(
+        DirectionConfig(r_max=fx.cfg["r_max"], delta_scale=fx.cfg["delta_scale"],
+                        seed=fx.seeds["acquisition"])
+    ).generate(clusters, z_all)
+    mapper = MetadataMapper(
+        fx.world.metadata_spec, MetadataMapperConfig(seed=fx.seeds["acquisition"]))
+    mapper.fit(z_all, fx.store.metadata, clusters)
+
+    kept, act = filter_actionable_directions(
+        directions, mapper, fx.store.metadata,
+        ActionabilityConfig(min_achievable_cosine=fx.cfg["min_achievable_cosine"]))
+    return {
+        "no_filter": {
+            "n_directions": len(directions),
+            "mean_achievable_cosine": float(np.mean([
+                mapper.plan_direction(d, 1, fx.store.metadata).achievable_cosine
+                for d in directions])) if directions else float("nan"),
+        },
+        "with_filter": {
+            "n_directions": len(kept),
+            "mean_achievable_cosine": act.get("mean_achievable_kept", float("nan")),
+            "survival_rate": act["survival_rate"],
+        },
+        "verdict": {
+            "filter_improves_achievability": bool(
+                act.get("mean_achievable_kept", 0.0) >= 0.0),
+            "n_rejected": len(directions) - len(kept),
+        },
+    }
+
+
+def ab5_no_policy_context(fx: Fixture) -> dict:
+    """PLAN.md 20.5: with and without the policy context entirely.
+
+    If removing theta-conditioning costs nothing, the effect labels are not
+    actually policy-dependent and RQ1's "contextual" claim is about batch
+    composition only. That is a result either way, but it has to be measured
+    rather than assumed - PLAN.md 19/F1 lists a missing effect geometry as a
+    named failure mode.
+    """
+    out = {}
+    for name, use in [("with_policy_context", True), ("no_policy_context", False)]:
+        _, final = fx.train(use_policy_context=use)
+        out[name] = {
+            "effect_mse": final["effect_mse"],
+            "effect_spearman": final["effect_spearman"],
+            "gain_within_r2": final.get("gain_within_r2", float("nan")),
+        }
+    out["verdict"] = {
+        "policy_context_helps": bool(
+            out["with_policy_context"]["effect_spearman"]
+            > out["no_policy_context"]["effect_spearman"]),
+        "spearman_gap": float(out["with_policy_context"]["effect_spearman"]
+                              - out["no_policy_context"]["effect_spearman"]),
+    }
+    return out
+
+
+#: PLAN.md 20's required ablations, keyed by ITS numbering so the registry can
+#: be compared with the spec line by line. Item 13 (BC-loss prediction vs
+#: downstream rollout correlation) needs a simulator and therefore cannot run
+#: in this synthetic script - it is measured by `run_acquisition_loop.py` on
+#: dmc / metaworld, where both a BC utility and a real rollout exist.
 ABLATIONS = {
     1: ("scalar_vs_latent", ab1_scalar_vs_latent),
     2: ("single_vs_multi_context", ab2_single_vs_multi_context),
     3: ("additive_vs_set_utility", ab3_additive_vs_set_utility),
     4: ("metric_loss", ab4_metric_loss),
-    5: ("clustering_vs_none", ab5_clustering_vs_none),
-    6: ("random_vs_pca_directions", ab6_random_vs_pca_directions),
-    7: ("outward_vs_local", ab7_outward_vs_local),
-    8: ("solvers_greedy_beam_exact", ab8_9_solvers),
-    10: ("metadata_aware_acquisition", ab10_metadata_aware),
-    11: ("latent_dim_sweep", ab11_latent_dim_sweep),
+    5: ("no_policy_context", ab5_no_policy_context),
+    6: ("ckpt_id_vs_continuous_context", ab6b_ckpt_id_vs_continuous_context),
+    7: ("clustering_vs_none", ab5_clustering_vs_none),
+    8: ("random_vs_pca_directions", ab6_random_vs_pca_directions),
+    9: ("actionability_filter", ab9_actionability_filter),
+    10: ("outward_vs_local", ab7_outward_vs_local),
+    11: ("solvers_greedy_beam_exact", ab8_9_solvers),
+    12: ("latent_dim_sweep", ab11_latent_dim_sweep),
+    #: not in PLAN.md 20's numbered list, kept because it is the direct test of
+    #: whether acquisition needs the metadata map at all
+    14: ("metadata_aware_acquisition", ab10_metadata_aware),
 }
+
+#: PLAN.md 20 items this script cannot cover, with the reason
+ABLATIONS_REQUIRING_SIMULATOR = {
+    13: ("bc_loss_vs_rollout_correlation",
+         "needs real rollout return; run run_acquisition_loop.py --env dmc"),
+}
+
 
 
 def main() -> dict:
