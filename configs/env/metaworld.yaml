@@ -1,0 +1,34 @@
+# Stage 2: MetaWorld, the first serious controllable acquisition benchmark
+# (SETUP.md 6, 27). Do NOT start with MT50.
+#
+# Deviation from SETUP.md 6: metaworld 3.1.1 ships only *-v3 environments, so
+# the five tasks named there are used by their v3 names. All five exist and all
+# five have working scripted experts.
+name: metaworld
+tasks: [reach-v3, push-v3, pick-place-v3, drawer-open-v3, button-press-v3]
+observation: state          # 39-dim; vision is explicitly out of scope early
+chunk_len: 16
+max_steps: 160              # the scripted experts finish well inside this
+max_chunks_per_episode: 3
+
+# Controllable acquisition metadata. The width differs per task - reach, push
+# and pick-place randomize object xyz + goal xyz, while drawer-open and
+# button-press randomize only 3 values - so the spec is the union of the
+# per-task reset boxes and `collect` clips each request to the task's own set,
+# recording the realized value. `object_z` is pinned because no task
+# randomizes it.
+metadata:
+  - {name: task_id, low: 0, high: 4, discrete: true}
+  - {name: object_x, low: -0.1, high: 0.1}
+  - {name: object_y, low: 0.6, high: 0.9}
+  - {name: object_z, low: 0, high: 0.115}
+  - {name: goal_x, low: -0.1, high: 0.1}
+  - {name: goal_y, low: 0.8, high: 0.9}
+  - {name: goal_z, low: 0.01, high: 0.3}
+
+# SETUP.md 9 suggests SAC/PPO here. The LDVA pipeline clones the scripted
+# experts instead, which is what makes many acquisition rounds affordable.
+policy: mlp_bc
+policy_hidden: [256, 256]
+seeds: 3                    # 3-5 seeds, several acquisition rounds
+acquisition_rounds: 4

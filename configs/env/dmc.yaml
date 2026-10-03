@@ -1,0 +1,27 @@
+# DMC / MuJoCo as the debugging rung (PLAN.md 15, item 3).
+# A real simulator with cleanly settable state, far cheaper to iterate on than
+# MetaWorld: ~0.1s for six episodes.
+name: dmc
+task: reacher-easy          # reacher-easy | point_mass-easy
+observation: state
+chunk_len: 16
+max_steps: 120
+max_chunks_per_episode: 3
+
+# reacher-easy: metadata is the GOAL, in polar coordinates. The arm reaches an
+# annulus, not a box, so Cartesian (x, y) would force the adapter to clip the
+# radius - a non-local kink that no local linear Jacobian can represent, which
+# measurably broke directional acquisition. In polar coordinates the declared
+# box IS the feasible set and nothing clips. The angle stops short of a full
+# turn so the planner never crosses the -pi/+pi seam.
+metadata:
+  - {name: target_radius, low: 0.06, high: 0.19}
+  - {name: target_angle,  low: -2.8, high: 2.8}
+
+# point_mass-easy: metadata is the INITIAL STATE instead, goal fixed at origin.
+#   - {name: start_x, low: -0.25, high: 0.25}
+#   - {name: start_y, low: -0.25, high: 0.25}
+
+policy: mlp_bc
+policy_hidden: [128, 128]
+expert: scripted            # 2-link analytic IK + joint PD (reward ~186/200)

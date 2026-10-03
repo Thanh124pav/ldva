@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# runtime outputs
+runs/
+outputs/
+wandb/
+*.npz
+*.pt
+*.ckpt
+*.png
+*.pdf
+!docs/**/*.png
+
+# envs (we use shared conda envs, see README)
+.venv*/

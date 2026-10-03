@@ -1,0 +1,42 @@
+# The MVP data model of SETUP.md 13 / PLAN.md 4.
+latent_dim: 32           # swept over 8/16/32/64/128 in SETUP.md 14
+encoder:
+  backbone: mlp          # mlp | gru | transformer
+  hidden: [128, 128]
+  policy_cond: concat    # the same chunk has different effects at different theta
+  use_metadata: false    # PLAN.md 5.5: do not force metadata geometry onto z
+context:
+  kind: deepsets         # deepsets | set_transformer
+  out_dim: 64
+  pool: mean             # mean/sum keep leave-one-out exact in O(N)
+  use_second_moment: true
+readout:
+  kind: contextual       # contextual | scalar (ablation 1)
+  use_context: true
+utility:
+  kind: deepsets         # deepsets | additive (ablation 3) | pairwise
+use_dataset_context: true
+policy_context:
+  out_dim: 16
+  enabled: true
+
+supervision:
+  estimator: leave_one_out   # the only genuinely contextual target
+  lr: 0.3                    # large enough that batch interactions exist
+  n_steps: 4
+  contexts_per_sample: 24
+  batch_size: 8
+  calibration_fraction: 0.1  # cross-check against a cheap proxy
+
+train:
+  epochs: 60
+  batch_size: 32
+  lr: 0.001
+  weight_decay: 0.00001
+  grad_clip: 1.0
+  weights:
+    effect: 1.0
+    batch: 1.0
+    metric: 0.1
+    smooth: 0.01        # PLAN.md 5.4 warns against over-weighting this
+    meta: 0.0           # optional in the MVP

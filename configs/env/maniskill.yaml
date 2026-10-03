@@ -1,0 +1,16 @@
+# Stage 3: ManiSkill, after the method is stable (SETUP.md 7).
+# State observations first; RGB only once the acquisition pipeline works.
+name: maniskill
+tasks: [PushCube, PickCube, StackCube, PegInsertionSide, PickSingleYCB]
+observation: state
+chunk_len: 16
+metadata:
+  - {name: task_id,     low: 0.0, high: 4.0, discrete: true}
+  - {name: object_x,    low: -0.2, high: 0.2}
+  - {name: object_y,    low: -0.2, high: 0.2}
+  - {name: object_z,    low: 0.0,  high: 0.1}
+  - {name: goal_x,      low: -0.2, high: 0.2}
+  - {name: goal_y,      low: -0.2, high: 0.2}
+  - {name: object_yaw,  low: -3.1416, high: 3.1416}
+  - {name: variation,   low: 0.0, high: 1.0}
+policy: ppo

@@ -1,0 +1,13 @@
+# SETUP.md 9: start simple. hidden: [] is a linear policy, which is what
+# Stage 0 uses so that one-step updates have a closed form.
+kind: mlp_bc
+hidden: []
+activation: relu
+train:
+  steps: 150
+  batch_size: 64
+  lr: 0.01
+  optimizer: sgd
+  snapshot_every: 30
+  n_restarts: 3          # independent inits so checkpoints are not one path
+  init_scale: 0.5

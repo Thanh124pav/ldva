@@ -1,0 +1,43 @@
+# Clustering, directions and planners (PLAN.md 7-11; SETUP.md 15-19).
+clustering:
+  method: kmeans         # kmeans | gmm | hdbscan
+  n_clusters: 8
+  boundary_quantile: 0.25
+
+directions:
+  rho: 0.90              # retained local-PCA variance
+  r_max: 5               # cap on intrinsic dimensions per domain
+  delta_scale: 0.4       # step in cluster-radius units (fidelity vs reach)
+  n_anchors: 5
+  require_outward: true
+  require_density_decrease: true
+  require_trust_region: true
+  epsilon_expand_scale: 1.5          # relative to the step
+  epsilon_expand_absolute_scale: 2.0 # relative to the cluster radius
+
+actionability:           # SETUP.md 16's fourth filter
+  min_achievable_cosine: 0.9
+  min_reachability_cosine: 0.5
+  keep_at_least: 2
+
+latent_sampler:
+  sigma: 0.3             # a direction is a distribution, not one point
+  delta_jitter: 0.15
+
+objective:
+  n_mc: 16
+  common_random_numbers: true   # comparable across solvers
+
+planner:
+  solver: beam           # exact | greedy | beam
+  beam_widths: [5, 10, 20, 50]
+  budget: 8
+  # cost-aware budget of SETUP.md 31: sum_a c_a n_a <= C
+  use_costs: false
+  monetary_budget: null
+
+metadata_mapper:
+  ridge: 0.01
+  pair_mode: random      # random pairs have far better SNR than kNN pairs
+  max_step_norm: 0.35    # trust region in normalized metadata units
+  validation_fraction: 0.3

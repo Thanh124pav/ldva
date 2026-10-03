@@ -1,0 +1,39 @@
+# Stage 0 synthetic world (SETUP.md 4, 37).
+# The gate before any robotics work: SETUP.md 4 says do not move on if it fails.
+name: synthetic
+world:
+  meta_dim: 3            # object_x, object_y, difficulty
+  latent_dim: 4          # true hidden effect factors
+  obs_dim: 6
+  act_dim: 2
+  chunk_len: 8           # SETUP.md 5 sweeps 8 / 16 / 32
+  obs_noise: 0.35
+  act_noise: 0.05
+  map_scale: 1.2         # locality of the metadata -> latent map
+
+stage0:
+  n_samples: 300
+  n_eval: 400            # fixed evaluation distribution, declared up front
+  policy_steps: 150
+  policy_snapshot_every: 30
+  policy_restarts: 3     # independent runs -> checkpoint diversity
+  contexts_per_sample: 24
+  context_batch_size: 8
+  # the additive part of a batch gain is O(lr), the interaction part O(lr^2):
+  # at lr=0.1 only ~7% of gain variance is composition-dependent, at lr=0.3
+  # it is ~84% and the gains are strongly non-additive. First-order proxies
+  # stop tracking leave-one-out above ~0.2, which is the trade-off.
+  label_lr: 0.3
+  label_steps: 4
+  latent_dim: 32
+  hidden: [128, 128]
+  epochs: 60
+  n_clusters: 4
+  r_max: 2
+  delta_scale: 0.4       # fidelity-vs-reach knob; see DirectionConfig
+  min_reachability: 0.5
+  min_achievable_cosine: 0.9
+  budget: 8
+  n_mc: 16
+  beam_widths: [1, 5, 10, 20]
+  seed: 0

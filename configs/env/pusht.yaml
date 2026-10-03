@@ -1,0 +1,19 @@
+# Stage 1: PushT low-dimensional (SETUP.md 5).
+# Debug stage for multi-context supervision and set utility. Needs an external
+# PushT environment; install it in its own conda env, not alongside LDVA
+# (SETUP.md 3).
+name: pusht
+observation: state          # SETUP.md: low-dimensional first, never images
+chunk_len: 16               # test 8 / 16 / 32
+metadata:
+  - {name: block_x,        low: -1.0, high: 1.0}
+  - {name: block_y,        low: -1.0, high: 1.0}
+  - {name: block_theta,    low: -3.1416, high: 3.1416}
+  - {name: agent_x,        low: -1.0, high: 1.0}
+  - {name: agent_y,        low: -1.0, high: 1.0}
+  - {name: goal_id,        low: 0.0, high: 3.0, discrete: true}
+  - {name: perturbation,   low: 0.0, high: 1.0}
+policy: mlp_bc              # SETUP.md 9: MLP BC, or low-dim diffusion policy
+dataset:
+  n_chunks: 5000            # SETUP.md 26 suggests 5k-20k
+  contexts_per_sample: 20

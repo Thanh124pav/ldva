@@ -1,0 +1,14 @@
+# Cost-aware acquisition for the paid-data track (SETUP.md 31, 34, 35).
+# Maximizes predicted gain subject to sum_a c_a n_a <= C, and reports
+# performance against monetary cost as well as against trajectory count.
+_base_: default.yaml
+planner:
+  solver: beam
+  beam_widths: [10, 20]
+  budget: 64             # upper bound on trajectories
+  use_costs: true
+  monetary_budget: 500.0 # C, in the provider's units
+  require_full_budget: false
+report:
+  # SETUP.md 35: do not report monetary savings unless prices are documented
+  curves: [success_vs_n_trajectories, success_vs_monetary_cost, cost_to_target]
