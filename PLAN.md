@@ -1,119 +1,190 @@
-# PLAN.md — Scoring for Future Robot Data Acquisition
+# PLAN.md — LDVA: Latent Data Valuation for Budgeted Robot Acquisition
 
-## 1. Goal
+This file is the **single source of truth** for the project. `SETUP.md` is retired.
 
-Build an end-to-end prototype for **future robot data acquisition guided by a learned data model**.
+LDVA studies **prospective robot-data acquisition**, not only curation of data that has already been collected.
 
-The core hypothesis is:
+The central hypothesis is:
 
-> A robot sample should not have a fixed scalar value. Its training effect is contextual: it depends on the current policy and the other samples used with it. We therefore learn a latent representation of sample-level optimization effect, learn a batch/set-level utility model on top of those latents, and use the resulting geometry to decide how future data support should be expanded under a fixed acquisition budget.
-
-The MVP should answer three questions:
-
-1. Can a learned latent vector represent the **optimization effect** of a robot sample across multiple batch/policy contexts?
-2. Can a set-level utility model predict the training gain of a hypothetical future acquisition batch?
-3. Can we use local latent domains and directional expansion to allocate acquisition budget better than simple baselines?
-
-The first implementation should run entirely in simulation.
+> A robot sample does not have a fixed scalar value. Its effect on learning is contextual: it depends on the current policy and on the other samples used with it. LDVA therefore learns an effect-aware latent representation, predicts the joint utility of future data compositions, and uses the learned geometry to decide where the robot-data distribution should expand under a limited acquisition budget.
 
 ---
 
-# 2. Problem Formulation
+# 1. Research Scope
 
-At acquisition round `t`, we have:
+## 1.1 Problem
 
-- current policy: `theta_t`
-- existing dataset: `D_t`
-- acquisition budget: `B`
-- each sample:
-  - robot data `x_i`
-  - acquisition metadata `m_i`
-  - optionally trajectory / chunk context
-- a fixed downstream utilization rule `pi_util`
+At acquisition round `t`, LDVA has:
 
-Examples of `x_i`:
+- current policy `theta_t`
+- owned dataset `D_t`
+- fixed downstream utilization rule `pi_util`
+- controllable acquisition metadata `m`
+- acquisition budget `B` or monetary budget `C`
 
-- transition `(s_t, a_t, s_{t+1})`
-- trajectory chunk
-- full demonstration trajectory
+Each observed sample/chunk is:
 
-For the first version, prefer **trajectory chunks** over isolated transitions because they retain local temporal context.
+```text
+x_i, m_i
+```
 
-We learn:
+LDVA learns a policy-conditioned effect latent:
 
 ```text
 E_phi(x_i, theta_t) -> z_i
 ```
 
-where `z_i` is an **effect latent**.
-
-A separate set utility model predicts:
+and a set-level utility model:
 
 ```text
 F_psi({z_i}, D_t, theta_t) -> predicted training gain
 ```
 
-The latent should satisfy local geometry constraints:
+The acquisition problem is **not**:
 
 ```text
-similar optimization behavior -> nearby latent vectors
-nearby latent vectors -> similar contextual training effects
-small policy change -> small contextual score change
-small batch-context change -> small contextual score change
+argmax_x scalar_score(x)
 ```
 
-The acquisition problem is not:
+It is:
 
 ```text
-select one sample x with the highest scalar score
+choose a composition of future, controllable data whose joint downstream gain is maximal
 ```
 
-Instead, it is:
+under a count or monetary budget.
+
+---
+
+## 1.2 Three research questions
+
+### RQ1 — Effect representation
+
+Can multi-context optimization effects be compressed into a locally meaningful latent geometry?
+
+Desired properties:
 
 ```text
-select a composition of future data whose joint predicted marginal gain is maximal
+similar optimization behavior -> nearby z
+nearby z -> similar contextual effects
+small batch-context changes -> small effect changes
+small policy changes -> small effect changes
+```
+
+### RQ2 — Prospective set valuation
+
+Can this geometry predict the joint utility of **data that has not yet been collected**?
+
+The model must capture:
+
+- redundancy
+- complementarity
+- saturation
+- interaction with the current dataset
+- interaction with the current policy
+
+### RQ3 — Actionable acquisition
+
+Can promising directions in effect space be translated into controllable robot-data collection conditions and improve downstream robot performance under a fixed budget?
+
+---
+
+# 2. What LDVA Is Not
+
+LDVA is not intended to be only:
+
+```text
+sample scoring
+existing-data filtering
+existing-dataset retrieval
+domain reweighting
+variance allocation
+latent visualization
+```
+
+Those can appear as baselines or intermediate components.
+
+The full claim requires:
+
+```text
+contextual effect representation
++ set-level prospective utility
++ future controllable acquisition
++ budgeted robot-data collection
 ```
 
 ---
 
-# 3. Definitions
+# 3. Core Formulation
 
-## 3.1 Contextual sample effect
+## 3.1 Sample unit
 
-For sample `x_i`, batch/context `B`, and policy `theta`:
+Default sample unit:
+
+```text
+trajectory chunk
+```
+
+rather than an isolated transition.
+
+Reason:
+
+- preserves local temporal context
+- creates enough samples for multi-context supervision
+- is easier to associate with acquisition metadata than arbitrary minibatch fragments
+
+Each sample record should contain:
+
+```text
+sample_id
+trajectory_id
+start_t / end_t
+observation chunk
+action chunk
+reward / success
+policy/source checkpoint
+acquisition metadata
+round_id
+cost
+```
+
+---
+
+## 3.2 Contextual sample effect
+
+For sample `x_i`, batch `B`, and policy `theta`:
 
 ```text
 s_i(B, theta)
 ```
 
-is the contribution of `x_i` under that context.
+is the contribution of `x_i` inside that optimization context.
 
-A preferred expensive target is a leave-one-out intervention:
+Preferred expensive target:
 
 ```text
 Delta_i(B, theta)
 =
-U(Update(theta, B))
+U_local(Update(theta, B))
 -
-U(Update(theta, B \ {x_i}))
+U_local(Update(theta, B \ {x_i}))
 ```
 
-where `U` is a downstream evaluation utility.
+Possible supervision estimators:
 
-Because exact leave-one-out retraining is expensive, support multiple supervision targets:
+1. exact / short-horizon leave-one-out
+2. one-step update effect
+3. gradient alignment
+4. influence-function proxy
+5. TRAK-like proxy
 
-1. exact / short-horizon leave-one-out gain
-2. gradient alignment proxy
-3. influence-function proxy
-4. change in validation / evaluation loss after a local update
-
-The implementation must keep the target interface modular.
+Cheap proxies are scaling tools, not automatically ground truth.
 
 ---
 
-## 3.2 Multi-context supervision
+## 3.3 Multi-context supervision
 
-A sample must appear under multiple contexts:
+The same sample must appear under multiple contexts:
 
 ```text
 (x_i, B_1, theta_1)
@@ -124,70 +195,129 @@ A sample must appear under multiple contexts:
 
 This is mandatory.
 
-The model must not learn a single historical scalar attached to `x_i`.
+A sample must **not** be assigned one historical scalar label.
 
-Instead, it must learn a representation that supports different contextual readouts.
-
----
-
-## 3.3 Local effect domain
-
-After learning `z_i`, cluster the latent space.
-
-A local effect domain `C_k` is a cluster of samples whose latent vectors are nearby.
-
-The intended semantic is:
+Recommended development target:
 
 ```text
-within a local domain, nearby samples have similar interaction profiles
-with downstream batch/policy contexts
+>= 20 contexts/sample
 ```
 
-For the MVP, use Euclidean geometry in latent space only if metric regularization successfully enforces that geometry.
+with multiple policy checkpoints and multiple independent restarts.
 
 ---
 
-# 4. Main Architecture
+## 3.4 Two notions of utility
 
-Implement the following modules separately.
+This distinction is critical.
 
-## 4.1 Sample Encoder
+### Dense supervision utility
+
+During representation learning, a cheap local utility may be used to generate many labels, e.g.:
+
+```text
+U_local(theta) = - BC validation loss
+```
+
+This is acceptable for learning optimization-effect structure.
+
+### Paper-level downstream utility
+
+The acquisition claim must be evaluated with **actual environment performance** after training/retraining:
+
+```text
+U_robot(theta)
+=
+rollout success rate / return on a fixed evaluation distribution
+```
+
+Therefore the paper-level realized acquisition gain is:
+
+```text
+Gain(Q)
+=
+U_robot(Train(D_t union Collect(Q)))
+-
+U_robot(Train(D_t))
+```
+
+A thresholded BC action-MSE proxy must **not** be called robot success.
+
+---
+
+# 4. Model
+
+## 4.1 Sample encoder
 
 ```text
 E_phi(x, theta_context) -> z
 ```
 
-Possible inputs:
+MVP:
 
-- trajectory chunk representation
-- current policy features
-- optional task/env descriptors
+```text
+MLP / GRU on state-action trajectory chunks
+```
 
-MVP options:
+Later:
 
-- MLP for state-based robotics environments
-- Transformer/GRU for trajectory chunks
-- policy context can initially be represented by:
-  - training step
-  - checkpoint embedding
-  - compressed policy statistics
-  - or omitted in the very first smoke test
+```text
+Transformer
+visual encoder
+JEPA-style predictive objectives
+```
 
-Do not begin with image observations.
-
-Start with low-dimensional state-based environments.
+Do not begin with image reconstruction or a VAE unless experiments show it is necessary.
 
 ---
 
-## 4.2 Context / Set Encoder
+## 4.2 Policy context
 
-Given a batch:
+The main experiment must use a policy representation that can generalize to **unseen future checkpoints**.
+
+Preferred main representation:
+
+```text
+continuous policy features
+```
+
+Examples:
+
+```text
+training progress
+train loss
+held-out loss
+gradient norm
+compact learned policy statistics
+```
+
+### Important rule
+
+Do **not** rely on checkpoint-ID embeddings in the main result.
+
+A checkpoint-ID embedding can memorize observed checkpoints and does not define a representation for an unseen future policy.
+
+Use checkpoint embeddings only as an ablation if desired.
+
+Validation must include:
+
+```text
+hold out entire policy checkpoints
+```
+
+not only unseen batch compositions.
+
+---
+
+## 4.3 Context / set encoder
+
+Given:
 
 ```text
 Z_B = {z_1, ..., z_n}
 ```
 
-encode it using a permutation-invariant model:
+use a permutation-invariant context encoder.
 
 MVP:
 
@@ -195,265 +325,130 @@ MVP:
 DeepSets
 ```
 
-Alternative later:
+Later:
 
 ```text
 Set Transformer
 ```
 
-The model should support:
-
-```text
-ContextEncoder(Z_B) -> h_B
-```
-
 ---
 
-## 4.3 Sample Effect Readout
-
-Predict the contextual contribution of a sample:
+## 4.4 Contextual effect readout
 
 ```text
 R_phi(z_i, h_{B\i}, theta_context) -> s_hat_i
 ```
 
-Supervise with multi-context influence/effect labels.
-
-This module is mainly used to shape the latent geometry.
+This readout shapes the latent geometry and tests whether sample effects are truly contextual.
 
 ---
 
-## 4.4 Batch Utility Model
-
-Predict utility of the full batch:
+## 4.5 Batch utility model
 
 ```text
-F_psi(Z_B, D_context, theta_context) -> V_hat(B)
+F_psi(Z_B, D_t, theta_context) -> V_hat(B)
 ```
 
-This must capture:
+The set model must be compared against an additive model.
 
-- redundancy
-- complementarity
-- saturation
-- batch composition effects
-
-Do not assume additive sample utility.
-
-This is the model later used by the acquisition planner.
+If the set model does not outperform a properly cross-validated additive model, the batch-interaction motivation is weak and must be re-examined.
 
 ---
 
 # 5. Training Objectives
 
-Use a weighted combination of objectives.
-
-## 5.1 Contextual effect prediction
+Use:
 
 ```text
-L_effect =
-MSE(
-    R_phi(z_i, h_{B\i}, theta),
-    target_effect_i(B, theta)
-)
-```
-
----
-
-## 5.2 Batch utility prediction
-
-```text
-L_batch =
-MSE(
-    F_psi(Z_B, theta),
-    target_batch_gain(B, theta)
-)
-```
-
-Possible batch gain target:
-
-```text
-U(Update(theta, B)) - U(theta)
-```
-
-measured after one or a small number of policy update steps.
-
----
-
-## 5.3 Metric / local geometry regularization
-
-Encourage latent distance to reflect similarity of optimization behavior.
-
-For two samples `i, j`:
-
-```text
-d_effect(i,j)
+L
 =
-average_c |target_effect_i(c) - target_effect_j(c)|
+L_effect
++ lambda_batch L_batch
++ lambda_metric L_metric
++ lambda_smooth L_smooth
++ optional lambda_meta L_meta
 ```
 
-over shared or matched contexts.
-
-Train latent distances to correlate with effect distances:
+## 5.1 Effect loss
 
 ```text
-L_metric =
-| ||z_i-z_j||_2 - normalize(d_effect(i,j)) |
+L_effect
+=
+MSE(s_hat_i(B, theta), target_effect_i(B, theta))
 ```
 
-Alternative:
-
-- contrastive loss
-- triplet loss
-- neighborhood consistency loss
-
-Start with contrastive/triplet if direct regression is unstable.
-
----
-
-## 5.4 Local smoothness
-
-For nearby samples / nearby policies:
+## 5.2 Batch utility loss
 
 ```text
-small input/context perturbation
-=> small score perturbation
+L_batch
+=
+MSE(V_hat(B), target_batch_gain(B, theta))
 ```
 
-Possible regularizer:
+## 5.3 Metric loss
+
+Euclidean distance in latent space is allowed only if training explicitly gives it effect semantics.
+
+For matched sample pairs:
 
 ```text
-L_smooth =
-|s_hat_i(B, theta) - s_hat_i(B', theta')|
+effect_distance(i,j)
+=
+average contextual difference across shared/matched contexts
 ```
 
-for deliberately sampled nearby `(B', theta')`.
-
-Do not over-weight this term.
-
----
-
-## 5.5 Optional acquisition-metadata regularization
-
-Each sample has metadata:
+Encourage:
 
 ```text
-m_i
+||z_i - z_j||_2
 ```
 
-Examples:
+to track effect-profile difference.
 
-- task ID
-- object pose
-- initial state
-- goal pose
-- source/operator
-- difficulty
-- scene configuration
+Possible implementations:
 
-Do **not** force metadata geometry and effect geometry to be globally identical.
+- contrastive
+- triplet
+- neighborhood consistency
+- direct metric regression
 
-Instead, optionally enforce local predictability:
+## 5.4 Smoothness
+
+For nearby batch/policy contexts:
+
+```text
+small context perturbation -> small predicted-effect perturbation
+```
+
+Use this as a regularizer, not as the primary objective.
+
+## 5.5 Metadata-direction regularization
+
+Do not force metadata geometry and effect geometry to be globally identical.
+
+Require only local predictability:
 
 ```text
 Delta m -> predictable Delta z
 ```
 
-Fit a local directional model:
+Possible model:
 
 ```text
 G_omega(z, m, Delta m) -> Delta z_hat
 ```
 
-Loss:
-
-```text
-L_meta =
-|| (z_j - z_i) - G_omega(z_i, m_i, m_j-m_i) ||^2
-```
-
-for locally matched sample pairs.
-
-Keep this optional in the first MVP.
-
 ---
 
-## 5.6 Total loss
+# 6. Local Effect Domains
 
-Start with:
-
-```text
-L =
-L_effect
-+ lambda_batch * L_batch
-+ lambda_metric * L_metric
-+ lambda_smooth * L_smooth
-```
-
-Later:
-
-```text
-+ lambda_meta * L_meta
-```
-
----
-
-# 6. Generating Supervision Data
-
-This is critical.
-
-For each policy checkpoint:
-
-```text
-theta_1, theta_2, ..., theta_T
-```
-
-sample many training batches.
-
-For each batch:
-
-1. compute baseline policy update
-2. compute batch-level gain
-3. generate sample-level effect targets
-4. store:
-   - sample IDs
-   - batch composition
-   - policy checkpoint
-   - metadata
-   - target effects
-   - batch gain
-
-Dataset format:
-
-```text
-ContextRecord:
-    policy_id
-    batch_sample_ids
-    batch_gain
-    per_sample_effects
-```
-
-Each sample should appear in many different contexts.
-
-Recommended minimum:
-
-```text
->= 20 contexts/sample
-```
-
-for initial experiments, if computationally feasible.
-
----
-
-# 7. Latent Clustering
-
-After encoder pretraining:
+After training at a reference policy `theta_ref`:
 
 ```text
 z_i = E_phi(x_i, theta_ref)
 ```
 
-Cluster latent vectors.
+cluster the effect latent space.
 
 MVP:
 
@@ -461,48 +456,41 @@ MVP:
 KMeans
 ```
 
-Also test:
+Ablations:
 
 ```text
 GMM
 HDBSCAN
+soft/local neighborhoods
 ```
 
-Do not assume one clustering method is part of the contribution.
+A local effect domain is intended to contain samples with similar **interaction profiles**, not merely visually similar samples.
 
-Store per cluster:
+Store:
 
 ```text
-ClusterState:
-    cluster_id
-    member_ids
-    centroid
-    covariance
-    PCA basis
-    metadata distribution
-    boundary points
+cluster_id
+members
+centroid
+covariance
+PCA basis
+boundary samples
+metadata statistics
 ```
 
 ---
 
-# 8. Candidate Direction Generation
+# 7. Directional Expansion
 
-For each cluster `C_k`:
+## 7.1 Candidate directions
 
-## 8.1 Compute local PCA
+For cluster `C_k`, compute local PCA:
 
 ```text
 Sigma_k = Cov(z_i in C_k)
 ```
 
-Eigen decomposition:
-
-```text
-lambda_1 >= lambda_2 >= ...
-v_1, v_2, ...
-```
-
-Choose smallest intrinsic rank `r_k` such that:
+Choose the smallest rank `r_k` satisfying:
 
 ```text
 sum_{j<=r_k} lambda_j / sum_j lambda_j >= rho
@@ -512,814 +500,865 @@ Default:
 
 ```text
 rho = 0.90
+r_k <= 5
 ```
 
-Cap:
-
-```text
-r_k <= r_max
-```
-
-Default:
-
-```text
-r_max = 5
-```
-
-Generate candidate directions:
+Initial candidates:
 
 ```text
 +v_1, -v_1, ..., +v_r, -v_r
 ```
 
-Maximum directions per domain:
+## 7.2 Outwardness
+
+For boundary anchor `z_b`:
 
 ```text
-2 * r_k
+z' = z_b + delta v
 ```
+
+Keep only candidates that:
+
+- move outward relative to local support
+- remain inside a latent trust region
+- retain reasonable local-density support
+- are actionable through acquisition metadata
+
+Latent-space outwardness alone is insufficient.
+
+## 7.3 Actionability
+
+A direction is actionable only if feasible metadata perturbations can approximately realize it.
+
+Locally fit:
+
+```text
+Delta z ~= J_k Delta m
+```
+
+Then solve:
+
+```text
+Delta m*
+=
+argmin ||J_k Delta m - alpha v||^2
+```
+
+subject to the environment's true feasible metadata set.
+
+The declared metadata parameterization must match the environment's feasible geometry; avoid boxes that secretly require clipping onto curved/non-box feasible sets.
 
 ---
 
-## 8.2 Keep only outward directions
+# 8. Prospective Future-Batch Utility
 
-A direction is useful only if it expands the current support.
-
-For each direction `v`:
-
-1. choose one or more boundary anchors `z_b`
-2. propose:
-   ```text
-   z' = z_b + delta * v
-   ```
-3. keep the direction if:
-   - distance to cluster centroid increases
-   - local density decreases
-   - but the point is not too far from observed support
-
-Use a trust-region constraint:
-
-```text
-dist(z', support) <= epsilon_expand
-```
-
-This prevents meaningless long-range extrapolation.
-
----
-
-# 9. Hypothetical Future Latent Generation
-
-For each candidate acquisition direction:
-
-```text
-a = (cluster k, direction v)
-```
-
-Generate hypothetical future samples in latent space:
-
-```text
-z_new =
-z_boundary
-+ delta * v
-+ epsilon
-```
-
-where:
-
-```text
-epsilon ~ local residual distribution
-```
-
-MVP:
-
-```text
-epsilon ~ N(0, sigma^2 * Sigma_local)
-```
-
-This approximates uncertainty in future collected samples.
-
-Do not represent one direction with a single deterministic latent point.
-
----
-
-# 10. Future Batch Utility
-
-Let there be `A` candidate acquisition directions.
-
-An allocation is:
+For candidate acquisition directions `a_1, ..., a_A`, allocation is:
 
 ```text
 n = (n_1, ..., n_A)
 ```
 
-with:
+with count budget:
 
 ```text
-sum_a n_a = B
-```
-
-For allocation `n`:
-
-1. sample `n_a` hypothetical latents from each direction
-2. combine into a hypothetical future acquisition batch
-3. feed the complete batch into the batch utility model
-4. repeat using Monte Carlo
-
-Estimate:
-
-```text
-V_hat(n | D, theta)
-=
-mean_m F_psi(Z_future^(m), D, theta)
-```
-
-This is the predicted utility of the **whole acquisition composition**.
-
-It must not be reduced to independent per-direction scores.
-
----
-
-# 11. Solving for Q*
-
-We want:
-
-```text
-n* =
-argmax_n V_hat(n | D, theta)
-
-subject to:
 sum_a n_a <= B
 ```
 
-## 11.1 Exact enumeration
-
-Use when both `A` and `B` are small.
-
-Number of allocations:
+or monetary budget:
 
 ```text
-C(B + A - 1, A - 1)
+sum_a c_a n_a <= C
 ```
 
-This serves as an oracle for small experiments.
-
-Implement this first.
-
----
-
-## 11.2 Beam search
-
-Use for larger problems.
-
-Pseudo-code:
-
-```python
-beam = {zero_allocation}
-
-for step in range(B):
-    candidates = []
-
-    for n in beam:
-        for a in candidate_directions:
-            n_new = n.copy()
-            n_new[a] += 1
-
-            score = monte_carlo_predict_utility(n_new)
-
-            candidates.append((n_new, score))
-
-    beam = top_H_unique(candidates)
-
-return best(beam)
-```
-
-Hyperparameter:
+For each direction, generate hypothetical future latents around boundary anchors:
 
 ```text
-beam width H
-```
-
-Start with:
-
-```text
-H = 10 or 20
-```
-
----
-
-## 11.3 Greedy baseline
-
-Implement:
-
-```text
-choose direction with maximum one-step marginal gain
-```
-
-at every step.
-
-This is a baseline, not the main planner.
-
-It will expose whether complementarity matters.
-
----
-
-# 12. Mapping Latent Directions to Acquisition Metadata
-
-This is required for actual acquisition.
-
-For each local domain, learn a local forward map:
-
-```text
-f_meta:
-m -> z
-```
-
-or directional map:
-
-```text
-Delta m -> Delta z
-```
-
-Given a target latent direction `v`, solve:
-
-```text
-Delta m*
+z_new
 =
-argmin_Delta_m
-|| G_k Delta_m - alpha v ||^2
+z_boundary + delta v + epsilon
 ```
 
-subject to metadata feasibility constraints.
+where `epsilon` follows a local residual distribution.
 
-MVP metadata should be simulator-controlled variables.
+Estimate joint utility by Monte Carlo:
 
-Good initial examples:
+```text
+V_hat(n | D_t, theta_t)
+=
+mean_m F_psi(Z_future^(m), D_t, theta_t)
+```
 
-- object initial position
-- target position
-- initial robot configuration
-- task difficulty
-- object category if discrete
-- perturbation magnitude
-
-Do not begin with free-form real-world metadata.
+Do not collapse the composition into independent scalar direction scores.
 
 ---
 
-# 13. Acquisition Loop
+# 9. Solving for Q*
 
-Each acquisition round:
+Optimization problem:
 
 ```text
-1. Train/update policy theta_t on D_t
-2. Generate multi-context supervision
-3. Update data model
-4. Encode D_t into latent space
-5. Cluster latent space
-6. Generate outward candidate directions
-7. Predict batch utility for candidate allocations
-8. Solve for Q*
-9. Map selected directions to metadata perturbations
-10. Collect new robot data
-11. D_{t+1} = D_t union D_new
-12. Repeat
+n*
+=
+argmax_n V_hat(n | D_t, theta_t)
 ```
+
+subject to budget constraints.
+
+Implement and compare:
+
+## Exact search
+
+Use on small candidate spaces as the learned-model oracle.
+
+## Greedy
+
+Repeatedly add one unit to the direction with highest predicted marginal gain.
+
+This is an LDVA ablation / simple planner.
+
+## Beam search
+
+Primary practical planner.
+
+Beam search is useful when complementarity makes greedy suboptimal.
+
+Compare beam to exact search on small problems and report relative gap and evaluation count.
 
 ---
 
-# 14. Important Assumptions
+# 10. Acquisition Loop
 
-State these explicitly in code/docs.
+The real simulator loop must use `EnvAdapter`, not a synthetic-world special case.
 
-## A1. Local effect smoothness
-
-Nearby effect latents have similar contextual optimization behavior.
-
-## A2. Local acquisition predictability
-
-Small controllable metadata changes produce locally predictable latent changes.
-
-This does not require global invertibility.
-
-## A3. Short-horizon stationarity
-
-Within one acquisition round, the current data model remains predictive enough for the next acquisition decision.
-
-## A4. Fixed utilization rule
-
-The first version assumes a fixed downstream training/utilization rule.
-
-Example:
+Each round:
 
 ```text
-uniform minibatch sampling from D_t union D_new
+1. train/retrain policy on D_t
+2. evaluate rollout performance on a fixed held-out evaluation distribution
+3. generate multi-context supervision from policy checkpoints
+4. train/update LDVA data model
+5. encode D_t
+6. cluster local effect domains
+7. generate actionable outward directions
+8. predict utilities of candidate future compositions
+9. solve Q*
+10. map chosen directions to metadata requests
+11. collect new data through EnvAdapter.collect
+12. D_{t+1} = D_t union D_new
+13. repeat
 ```
 
-The acquisition planner optimizes under this fixed rule.
-
-Do not jointly optimize utilization yet.
+The evaluation distribution must be defined **before acquisition** and never changed to favor the collected data.
 
 ---
 
-# 15. MVP Experimental Setting
+# 11. Environment Interface
 
-Start small.
-
-Recommended environments:
-
-1. ManiSkill state-based tasks
-2. MetaWorld state-based tasks
-3. DMC / MuJoCo for debugging
-
-Prefer a setting where acquisition metadata is controllable.
-
-Example task family:
+Every simulator / real-data source should expose:
 
 ```text
-PushCube / PickCube
+metadata_spec
+collect(metadata)
+evaluation_conditions / evaluation_set
+acquisition_cost(metadata)
+evaluate_policy(policy, fixed_eval_conditions)
 ```
 
-Metadata:
+The last function is required for paper-level robotics evaluation.
+
+`evaluation_set(obs, act)` may remain useful for dense BC supervision, but it is not a substitute for rollout evaluation.
+
+---
+
+# 12. Baselines
+
+There are two distinct groups. Do not mix them in the paper.
+
+## 12.1 LDVA internal ablations
+
+These may reuse the LDVA representation/model because they isolate one design choice:
 
 ```text
-object initial x/y
-goal x/y
-robot initial configuration
-task variation
+LDVA scalar readout
+LDVA additive utility
+LDVA no-context
+LDVA single-context supervision
+LDVA no metric loss
+LDVA no clustering
+LDVA random directions
+LDVA local-only / no outward expansion
+LDVA greedy vs beam
+LDVA checkpoint-ID context vs continuous policy context
+```
+
+The existing `*_style` implementations that score hypothetical directions through the LDVA latent model belong here.
+
+Do **not** present them as reproductions of published methods.
+
+## 12.2 Independent external baselines
+
+These must compute their own scores/objectives from their own method assumptions rather than borrowing LDVA predictions.
+
+Minimum local-stage baselines:
+
+```text
+Random / Uniform acquisition
+Diversity / Core-set acquisition
+Direct Gradient Alignment
+Direct Influence
+```
+
+Paper-level baseline targets:
+
+```text
+Influence Functions
+TracIn
+DemInf
+CUPID
+Re-Mix
+DataMIL
+QoQ
+```
+
+Optional / scale-dependent:
+
+```text
+Data Shapley on small problems
+ATHENA for large VLA-scale experiments
+```
+
+For published methods whose original problem is post-hoc curation rather than future acquisition, clearly define the prospective adaptation and document the deviation.
+
+---
+
+# 13. Benchmark and Policy Roadmap
+
+## Local development
+
+Primary choices:
+
+```text
+DMC / MuJoCo state-based for cheap debugging
+MetaWorld state-based for the first meaningful manipulation result
 ```
 
 Policy:
 
 ```text
-PPO or SAC
+MLP Behavior Cloning
 ```
 
-For the first implementation, PPO is preferable if an existing codebase is already available.
+Embodiment:
+
+```text
+DMC task-specific embodiment
+MetaWorld Sawyer
+```
+
+Do not block local work on ManiSkill; Vulkan/driver dependence is unnecessary for the MVP.
+
+## Server experiments
+
+Scale to:
+
+```text
+MetaWorld multi-task
+robosuite Panda
+optional LIBERO
+optional DMC/MuJoCo generality suite
+```
+
+Policy architectures:
+
+```text
+MLP BC for controlled analysis
+Diffusion Policy as main stronger policy
+ACT as architecture-generalization / teleop-friendly policy
+```
+
+## Real robot
+
+Preferred if accessible:
+
+```text
+Franka Panda / FR3
+```
+
+Low-cost fallback:
+
+```text
+SO-101
+```
+
+Use the same or compatible embodiment/sensor/action interface as the acquired teleoperation data whenever possible.
 
 ---
 
-# 16. Baselines
+# 14. Project Stages
 
-Implement simple baselines first.
+The project uses four research stages.
 
-## Acquisition baselines
+## Stage 0 — Literature review, overlap, and research-gap validation
 
-1. Uniform random acquisition
-2. Equal budget per metadata-defined region
-3. Novelty / diversity acquisition
-4. Uncertainty acquisition
-5. Gradient-norm acquisition
-6. Gradient-alignment-based acquisition
-7. Greedy predicted utility
-8. Proposed beam-search set utility acquisition
+Goal:
 
-Later add robotics-specific data curation/acquisition baselines where compatible.
+```text
+ensure the novelty is the intersection of prospective acquisition,
+contextual optimization effect, set utility, and robot controllability
+```
+
+Nearest neighbors to track closely:
+
+```text
+Datamodels
+AirRep
+Inter-Sample Influence Graphs
+DataMIL
+CUPID
+DemInf
+Re-Mix
+QoQ
+ATHENA
+cost-aware multi-source data acquisition
+```
+
+Questions to keep updated:
+
+- Has someone already learned an attribution/effect representation?
+- Has someone already modeled sample interactions?
+- Has someone already optimized future acquisition rather than existing-data selection?
+- Has someone translated latent/effect directions into controllable robot collection conditions?
+
+### Exit criterion
+
+Maintain a defensible gap statement:
+
+> Existing methods can value, filter, retrieve, or reweight collected data, and some model training-data effects or interactions. LDVA targets the missing prospective loop: learn an optimization-effect geometry, predict the joint utility of controllable future robot data, and use that geometry to expand the data distribution under an acquisition budget.
 
 ---
 
-# 17. Evaluation
+## Stage 1 — Local machine MVP
 
-Evaluate three levels separately.
+Goal:
 
-## 17.1 Representation quality
+```text
+prove the mechanism on cheap real simulators
+```
+
+### Stage 1A — Synthetic preflight
+
+The existing synthetic benchmark is a **preflight gate**, not the research Stage 0.
+
+It should validate:
+
+- contextual effect prediction
+- set utility > additive utility where interactions exist
+- effect-neighbor consistency
+- beam ≈ exact on small problems
+- predicted acquisition ranking correlates with realized local gain
+- metadata interventions move latents in intended directions
+
+### Stage 1B — DMC smoke experiment
+
+Purpose:
+
+```text
+verify the full closed-loop plumbing through a real simulator
+```
+
+Use 3 development seeds.
+
+Required change before running:
+
+```text
+run_acquisition_loop.py must operate through EnvAdapter
+```
+
+Measure actual rollout return, not only BC validation loss.
+
+### Stage 1C — MetaWorld first meaningful experiment
+
+Start with:
+
+```text
+push-v3
+```
+
+then add:
+
+```text
+reach-v3
+pick-place-v3
+drawer-open-v3
+button-press-v3
+```
+
+First meaningful plot:
+
+```text
+MetaWorld rollout success rate vs acquired episodes
+```
+
+Minimum comparison:
+
+```text
+Random
+Diversity
+Direct Gradient Alignment
+Direct Influence
+LDVA Greedy
+LDVA Beam
+```
+
+### Stage 1 exit criteria
+
+Proceed to server only if:
+
+1. set utility predicts unseen batch compositions better than additive utility
+2. acquisition ranking predicts realized gain
+3. LDVA improves rollout success/return under equal acquisition budget on at least one real simulator task
+4. the result is stable over >= 3 seeds
+5. metadata direction control is measurably better than chance
+
+---
+
+## Stage 2 — Server / paper-level simulation
+
+Goal:
+
+```text
+scale, establish robustness, and compare against strong independent baselines
+```
+
+Tasks:
+
+- MetaWorld multi-task sweep
+- robosuite Panda benchmark
+- stronger policies: Diffusion Policy and/or ACT
+- >= 5 final seeds
+- true baseline reproductions/adaptations
+- latent dimension sweep
+- context supervision ablations
+- set-vs-additive ablation
+- clustering/direction ablations
+- greedy/beam/exact comparison
+- count-budget and heterogeneous-cost experiments
+- held-out checkpoint generalization
+- predicted-vs-realized acquisition calibration
+
+Optional:
+
+- LIBERO
+- DMC/MuJoCo generality suite
+- static robot datasets for representation/valuation external validation
+
+### Stage 2 exit criterion
+
+LDVA must outperform strong baselines across multiple tasks/environments under equal acquisition cost while maintaining calibrated prospective predictions.
+
+---
+
+## Stage 3 — Paid teleop data + real robot
+
+Goal:
+
+```text
+demonstrate real acquisition efficiency, not only simulation sample efficiency
+```
+
+Preferred data:
+
+```text
+paid/custom teleoperation demonstrations
+same or compatible embodiment as evaluation robot
+clear acquisition metadata
+known monetary cost
+```
+
+Acquisition variables can include:
+
+```text
+task
+object configuration
+initial state
+goal
+scene
+clutter
+difficulty
+operator/source
+camera configuration
+```
+
+Budget:
+
+```text
+sum_a c_a n_a <= C
+```
+
+Train imitation policy:
+
+```text
+ACT and/or Diffusion Policy
+```
+
+Evaluate on a fixed real-robot test distribution declared before acquisition.
+
+Primary figure:
+
+```text
+real-robot success rate vs monetary acquisition cost
+```
+
+Secondary figures:
+
+```text
+success vs acquired trajectories
+cost to reach target success
+predicted vs realized gain
+budget allocation across conditions
+```
+
+---
+
+# 15. Immediate Code Audit Fixes — Must Do Before Stage 1 Experiments
+
+These are the current highest-priority tasks.
+
+## P0.1 — Add real rollout evaluation
+
+Current BC evaluation is useful for supervision but is not robot success.
+
+Add an environment-level API:
+
+```python
+evaluate_policy(policy, eval_conditions)
+```
+
+For DMC report environment return.
+
+For MetaWorld report actual rollout success and return.
+
+Keep fixed evaluation conditions across all methods and rounds.
+
+---
+
+## P0.2 — Generalize closed-loop acquisition to EnvAdapter
+
+Current synthetic closed-loop logic must be refactored so the same loop runs on:
+
+```text
+synthetic
+DMC
+MetaWorld
+future robosuite / real robot adapters
+```
+
+No synthetic-only data-generation call may remain in the core acquisition loop.
+
+---
+
+## P0.3 — Separate ablations from true baselines
+
+Existing `CUPID-style`, `DataMIL-style`, `Re-Mix-style`, gradient-style routines that obtain scores from the LDVA latent model are **LDVA ablations**.
+
+Implement independent local baselines first:
+
+```text
+Direct Gradient Alignment
+Direct Influence
+```
+
+Then add paper-level external methods.
+
+---
+
+## P0.4 — Fix policy-context indexing and remove checkpoint-ID dependence
+
+Ensure the reference checkpoint's continuous features and checkpoint index cannot silently refer to different checkpoints.
+
+For the main model:
+
+```text
+disable checkpoint-ID embedding
+```
+
+unless explicitly running the checkpoint-ID ablation.
+
+Evaluate on held-out checkpoints.
+
+---
+
+## P1 — Experiment plumbing
+
+Before large sweeps:
+
+- make experiment scripts load YAML configs rather than duplicate hard-coded defaults
+- cache collected datasets
+- cache context records and expensive leave-one-out labels
+- store git SHA with every run
+- use structured JSON/CSV/W&B logging
+- add multi-seed launch and aggregation
+- pin simulator environments separately from the LDVA core environment
+- add CI/test command if practical
+
+---
+
+# 16. Current Repository Status
+
+Already implemented:
+
+```text
+sample/context schemas
+multi-context supervision
+gradient / influence / leave-one-out estimators
+MLP/GRU/Transformer sample encoders
+DeepSets context encoder
+contextual effect readout
+set/additive/pairwise utility models
+latent diagnostics
+KMeans/GMM/HDBSCAN
+PCA direction generation
+metadata mapper
+exact / greedy / beam allocation
+count and monetary budgets
+synthetic preflight
+DMC adapter
+MetaWorld adapter
+unit tests
+```
+
+Not yet paper-ready:
+
+```text
+real rollout utility in the acquisition objective/evaluation
+EnvAdapter-based closed-loop simulation
+independent published baselines
+held-out-policy generalization without checkpoint-ID memorization
+server-scale experiments
+paid data
+real robot
+```
+
+PushT and ManiSkill are optional at this point; they are not blockers for Stage 1.
+
+---
+
+# 17. First Experiment Sequence
+
+Run in this order after the P0 fixes.
+
+## E0 — Unit + synthetic preflight
+
+```text
+pytest
+full synthetic gate
+>= 3 seeds for measurement
+```
+
+Do not quote quick-mode results.
+
+## E1 — DMC Reacher closed-loop
+
+Methods:
+
+```text
+Random
+Diversity
+Direct GradAlign
+Direct Influence
+LDVA Greedy
+LDVA Beam
+```
 
 Measure:
 
-- contextual effect prediction error
-- batch utility prediction error
-- nearest-neighbor consistency
-- latent distance vs effect-distance correlation
-- stability across nearby policy checkpoints
-- stability across slightly modified batch contexts
+```text
+rollout return vs acquired episodes
+predicted vs realized gain
+metadata-direction control
+```
+
+## E2 — MetaWorld push-v3
+
+Same methods.
+
+Measure:
+
+```text
+actual success rate
+return
+performance vs acquisition budget
+```
+
+If E2 has no stable signal, stop and diagnose before scaling.
+
+## E3 — MetaWorld 5-task sweep
+
+Only after E2 succeeds.
 
 ---
 
-## 17.2 Acquisition prediction quality
+# 18. Main Evaluation Metrics
 
-For predicted candidate allocation `Q`:
-
-- predicted gain
-- realized gain after actual collection/training
-- rank correlation over candidate acquisition compositions
-
-Important:
-
-The core test is not whether individual sample scores are correct.
-
-The core test is:
+## Representation
 
 ```text
-Can the model rank future acquisition batches correctly?
+contextual effect MSE / rank correlation
+latent-distance vs effect-distance correlation
+nearest-neighbor effect consistency
+held-out-checkpoint performance
+```
+
+## Set utility
+
+```text
+batch-gain MSE / Spearman
+within-checkpoint residual prediction
+set vs additive prediction gap
+```
+
+## Prospective acquisition
+
+```text
+predicted vs realized acquisition gain
+candidate-composition rank correlation
+normalized regret of chosen composition
+```
+
+## Robotics outcome
+
+```text
+rollout success rate
+rollout return
+performance vs acquired episodes
+performance vs monetary acquisition cost
+```
+
+## Metadata control
+
+```text
+desired-vs-realized latent direction cosine
+latent displacement error
+actionable-direction survival rate
 ```
 
 ---
 
-## 17.3 Downstream acquisition performance
+# 19. Critical Failure Modes
 
-Under the same acquisition budget:
+## F1 — No stable effect geometry
 
-```text
-final policy return / success rate
-```
+If nearby latents do not share contextual effect behavior, clustering-based acquisition is not justified.
 
-versus:
+## F2 — Batch utility is effectively additive
 
-```text
-number of newly acquired trajectories
-collection cost
-```
+If a cross-validated additive model matches the set model, the interaction story is weak.
 
-Plot:
+## F3 — Effect labels are estimator noise
 
-```text
-policy performance vs acquisition budget
-```
+Calibrate cheap proxies against expensive leave-one-out labels on a subset.
+
+## F4 — Latent directions are not actionable
+
+If feasible metadata changes cannot reproduce useful latent directions, directional acquisition is not executable.
+
+## F5 — Out-of-support predictions are unreliable
+
+Use local trust regions and Monte Carlo uncertainty; do not extrapolate arbitrarily far.
+
+## F6 — BC utility improves but robot performance does not
+
+This is now a first-class failure mode.
+
+If acquired data reduces imitation loss but fails to improve rollout success/return, the method has not yet demonstrated robot-acquisition value.
+
+## F7 — Policy context does not generalize
+
+If performance collapses on held-out checkpoints, the policy-conditioned representation is memorizing training checkpoints rather than modeling policy state.
 
 ---
 
-# 18. Critical Ablations
+# 20. Main Ablations
 
-Must include:
+Required:
 
-1. scalar sample score vs latent effect representation
+1. scalar sample score vs contextual latent effect
 2. single-context vs multi-context supervision
-3. additive utility vs set-level utility
-4. no metric loss vs metric loss
-5. no clustering vs clustered local domains
-6. random directions vs PCA/local directions
-7. local-only exploitation vs outward expansion
-8. greedy vs beam search
-9. exact enumeration vs beam search on small problems
-10. no metadata-direction model vs metadata-aware acquisition
-11. latent dimension sweep
+3. additive vs set-level utility
+4. no metric regularization
+5. no policy context
+6. checkpoint-ID vs continuous policy context
+7. no clustering / local neighborhood alternative
+8. random directions vs PCA directions
+9. no actionability filter
+10. local-only exploitation vs outward expansion
+11. greedy vs beam vs exact
+12. latent dimension sweep
+13. BC-loss prediction vs downstream rollout correlation
 
 ---
 
-# 19. Failure Modes to Detect Early
+# 21. Reproducibility
 
-Stop or redesign if any of the following occurs.
-
-## F1. No stable effect geometry
-
-If nearby effect latents do not have similar contextual behavior, clustering-based acquisition is not justified.
-
-## F2. Batch utility is nearly additive
-
-If:
+Development:
 
 ```text
-F({z_i}) ~= sum f(z_i)
+>= 3 seeds
 ```
 
-then the batch-interaction motivation is weak.
-
-Measure this explicitly.
-
-## F3. Multi-context labels are too noisy
-
-If leave-one-out/influence labels vary mostly due to estimator noise, latent learning will collapse.
-
-## F4. Latent directions are not metadata-actionable
-
-If no local metadata perturbation can reliably move latent support, directional acquisition cannot be executed.
-
-## F5. Out-of-support utility predictions are unreliable
-
-Use trust regions and uncertainty estimates.
-
-Do not extrapolate arbitrarily far.
-
----
-
-# 20. Implementation Order
-
-## Phase 0 — Synthetic sanity test
-
-Before robotics:
-
-Create synthetic samples with known:
-
-- latent effect factors
-- redundancy
-- complementarity
-- metadata-to-latent map
-
-Verify the full pipeline can recover useful acquisition directions.
-
-Deliverable:
+Final simulation:
 
 ```text
-tests/test_synthetic_acquisition.py
+>= 5 seeds
+```
+
+Record separately:
+
+```text
+environment seed
+policy seed
+context-generation seed
+latent-model seed
+acquisition-search seed
+```
+
+Cache expensive labels and acquisition datasets.
+
+Every reported run must store:
+
+```text
+config
+git commit SHA
+seed bundle
+policy checkpoint(s)
+data-model checkpoint
+acquisition plan
+realized collected metadata
+metrics
 ```
 
 ---
 
-## Phase 1 — Supervision generator
+# 22. Scope Control
 
-Implement:
-
-```text
-generate_context_records.py
-```
-
-Outputs:
+Do not prematurely expand into:
 
 ```text
-policy checkpoints
-batch composition
-per-sample effect target
-batch gain
-metadata
+generic world models
+joint acquisition-utilization optimization
+full active RL
+VLA foundation-model pretraining
+cross-embodiment transfer
+arbitrary real-world scene generation
 ```
 
----
-
-## Phase 2 — Data model
-
-Implement:
+The first paper should remain centered on:
 
 ```text
-models/sample_encoder.py
-models/set_encoder.py
-models/effect_readout.py
-models/batch_utility.py
+learning optimization-effect geometry
+predicting joint future-data utility
+mapping promising directions to controllable acquisition conditions
+allocating a limited robot-data budget
 ```
 
-Train on stored context records.
-
----
-
-## Phase 3 — Latent diagnostics
-
-Implement:
-
-```text
-analysis/latent_geometry.py
-```
-
-Produce:
-
-- PCA plots
-- nearest-neighbor effect consistency
-- local smoothness metrics
-- cluster statistics
-
-Do not proceed to acquisition unless the latent geometry is meaningful.
-
----
-
-## Phase 4 — Clustering and directions
-
-Implement:
-
-```text
-acquisition/clustering.py
-acquisition/directions.py
-```
-
-Support:
-
-```text
-KMeans
-local PCA
-boundary detection
-outward filtering
-trust region
-```
-
----
-
-## Phase 5 — Hypothetical acquisition simulator
-
-Implement:
-
-```text
-acquisition/latent_sampler.py
-```
-
-Input:
-
-```text
-cluster
-direction
-budget
-```
-
-Output:
-
-```text
-hypothetical future latent batch
-```
-
----
-
-## Phase 6 — Allocation planner
-
-Implement:
-
-```text
-acquisition/exact_search.py
-acquisition/greedy.py
-acquisition/beam_search.py
-```
-
-All planners call the same:
-
-```text
-predict_allocation_utility(allocation)
-```
-
----
-
-## Phase 7 — Metadata controller
-
-Implement:
-
-```text
-acquisition/metadata_mapper.py
-```
-
-First version:
-
-- local linear regression
-- local Jacobian estimate
-- constrained least squares inversion
-
----
-
-## Phase 8 — Closed-loop acquisition experiment
-
-Implement:
-
-```text
-experiments/run_acquisition_loop.py
-```
-
-Run:
-
-```text
-train policy
--> fit/update datamodel
--> cluster
--> generate directions
--> plan acquisition
--> collect
--> retrain
--> evaluate
-```
-
----
-
-# 21. Suggested Repository Structure
-
-```text
-project/
-|
-|-- configs/
-|   |-- env/
-|   |-- datamodel/
-|   |-- acquisition/
-|
-|-- data/
-|   |-- context_dataset.py
-|   |-- metadata.py
-|
-|-- models/
-|   |-- sample_encoder.py
-|   |-- set_encoder.py
-|   |-- effect_readout.py
-|   |-- batch_utility.py
-|
-|-- supervision/
-|   |-- influence.py
-|   |-- gradient_alignment.py
-|   |-- leave_one_out.py
-|   |-- generate_context_records.py
-|
-|-- acquisition/
-|   |-- clustering.py
-|   |-- directions.py
-|   |-- latent_sampler.py
-|   |-- metadata_mapper.py
-|   |-- exact_search.py
-|   |-- greedy.py
-|   |-- beam_search.py
-|
-|-- analysis/
-|   |-- latent_geometry.py
-|   |-- acquisition_calibration.py
-|   |-- plots.py
-|
-|-- experiments/
-|   |-- train_policy.py
-|   |-- train_datamodel.py
-|   |-- run_acquisition_loop.py
-|
-|-- tests/
-|   |-- test_synthetic_acquisition.py
-|   |-- test_set_utility.py
-|   |-- test_direction_generation.py
-|
-|-- PLAN.md
-```
-
----
-
-# 22. First Coding Milestone
-
-Do **not** begin with the entire closed loop.
-
-The first milestone is:
-
-```text
-Given:
-- a fixed set of samples
-- multiple policy checkpoints
-- multiple random batches
-
-Train:
-- E_phi
-- contextual effect readout
-- batch utility model
-
-Verify:
-1. same sample under different contexts gets correctly predicted effects
-2. nearby latent samples have similar effect profiles
-3. batch utility prediction beats an additive scalar-score baseline
-```
-
-If this milestone fails, do not proceed to clustering/acquisition.
-
----
-
-# 23. Second Coding Milestone
-
-On a fixed trained latent space:
-
-```text
-1. cluster samples
-2. generate PCA directions
-3. synthesize hypothetical future latent batches
-4. compare exact search / greedy / beam search
-5. test whether the planner recovers known high-value compositions
-```
-
-Use a synthetic oracle before real robot acquisition.
-
----
-
-# 24. Third Coding Milestone
-
-Connect acquisition directions to simulator metadata.
-
-Verify:
-
-```text
-desired latent direction
--> predicted metadata perturbation
--> actual collected sample
--> realized latent movement
-```
-
-Metric:
-
-```text
-cosine_similarity(
-    desired_latent_direction,
-    realized_latent_delta
-)
-```
-
-Only after this is stable should the full closed-loop acquisition experiment be run.
-
----
-
-# 25. Main Research Claim to Preserve During Implementation
-
-Do not let implementation drift into ordinary data curation.
-
-The intended claim is:
-
-> We learn a policy-conditioned latent model of how robot data interacts during optimization, use its local geometry to represent actionable directions for expanding the data distribution, and optimize the composition of future acquisitions based on predicted joint training utility.
-
-The three key distinctions are:
-
-```text
-1. future acquisition, not only selection of already collected data
-2. contextual/set-level utility, not fixed scalar sample value
-3. directional expansion of effect domains, not only resampling known regions
-```
-
----
-
-# 26. Questions to Revisit After Initial Results
-
-Do not solve these before the MVP unless required by experiments.
-
-1. Is PCA the right way to define expansion directions?
-2. Should domains be hard clusters or soft/local neighborhoods?
-3. Should policy context be explicitly embedded?
-4. Can acquisition and utilization be jointly optimized?
-5. Is a separate control latent needed in addition to effect latent?
-6. Does the learned geometry exhibit a stable empirical phenomenon worth formalizing?
-7. Can latent direction generation be learned rather than PCA-based?
-8. Can the approach scale from state-based robots to vision/VLA data?
+If these four claims are strong, more complex policies and embodiments are scaling experiments, not changes to the core method.
