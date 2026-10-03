@@ -386,7 +386,20 @@ def main() -> dict:
         tags=("synthetic", "diagnosis", args.experiment),
     )
 
+    out = Path(args.out)
     cells = []
+
+    def _checkpoint():
+        """Persist after every cell, so a crash costs one cell, not the sweep."""
+        save_json({
+            "config": {k: (list(v) if isinstance(v, tuple) else v) for k, v in cfg.items()},
+            "args": vars(args),
+            "cells": cells,
+            "analysis": analyse(cells),
+            "partial": True,
+            "provenance": run_provenance({"experiment": args.experiment}),
+        }, out / "diagnose_criteria.json")
+
     for ds in scales:
         for s in seeds:
             try:
@@ -400,15 +413,16 @@ def main() -> dict:
                 cells.append({"seed": s, "delta_scale": ds,
                               "error": f"{type(e).__name__}: {e}",
                               "traceback": tb})
+            _checkpoint()
 
     report = {
         "config": {k: (list(v) if isinstance(v, tuple) else v) for k, v in cfg.items()},
         "args": vars(args),
         "cells": cells,
         "analysis": analyse(cells),
+        "partial": False,
         "provenance": run_provenance({"experiment": args.experiment}),
     }
-    out = Path(args.out)
     save_json(report, out / "diagnose_criteria.json")
     _print(report, out)
     if log.active:
