@@ -80,6 +80,13 @@ bug. With Spearman over ~6 effective levels, one divergent update sets the sign.
 
 ### Measured the same way on both sides, criterion 5 passes
 
+> **Superseded in part by [`E0_diagnosis.md`](E0_diagnosis.md).** A 24-cell
+> sweep showed the fix is *not* averaging over draws (effect over 24 cells:
+> −0.005, helping in 12 of 24). What matters is de-duplicating allocations and
+> widening the candidate set. The conclusion that criterion 5's failure is a
+> measurement artefact stands and is confirmed: seed 2 goes from −0.569 to
+> +0.388 at the *same* step length.
+
 `experiments/synthetic/diagnose_criteria.py` de-duplicates allocations, averages
 realized gain over independent *plan* draws, and adds random allocations to
 break the range restriction. On seed 2 — the worst seed:
@@ -94,6 +101,14 @@ config, so it is a mechanism demonstration rather than a corrected gate result.
 The full sweep (8 seeds × 3 step lengths, full config) is what decides it.
 
 ## Criterion 6 fails on seed 2 through overshoot
+
+> **REFUTED by [`E0_diagnosis.md`](E0_diagnosis.md).** The overshoot story below
+> rests on three points and does not survive 24 cells: rho(C6, overshoot) =
+> −0.23, and overshoot is flat across step lengths (2.26× / 2.27× / 2.14×) while
+> criterion 6 is also flat (+0.395 / +0.384 / +0.351). The sweep instead finds a
+> fit-versus-controllability tension — better effect-model fit, worse direction
+> control (rho = −0.833, p = 0.010 on 8 independent seeds). The numbers below are
+> accurate as measurements; the causal reading was wrong.
 
 Not the Jacobian fit — seed 2 has the **best** held-out Jacobian R² and the
 worst control:
@@ -150,4 +165,5 @@ failure.
 
 E1 (DMC closed loop) has deliberately **not** been run: its premise is that
 predicted gain tracks realized gain, and that premise is what is under
-investigation here.
+investigation here. See [`E0_diagnosis.md`](E0_diagnosis.md) for the follow-up,
+which resolves criterion 5 and leaves criterion 6 open.

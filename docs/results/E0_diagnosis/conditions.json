@@ -1,0 +1,335 @@
+{
+  "averaging_effect_mean": -0.00502450980392156,
+  "averaging_helped_in_n_cells": 12,
+  "by_delta_scale": [
+    {
+      "c5_max": 0.8735294117647058,
+      "c5_mean": 0.38235294117647056,
+      "c5_min": 0.014705882352941175,
+      "c5_n_negative": 0,
+      "c5_n_positive": 4,
+      "c6_mean": 0.3945178771044291,
+      "c6_n_pass": 5,
+      "delta_scale": 0.1,
+      "n_seeds": 8,
+      "overshoot_mean": 2.2613444199733443
+    },
+    {
+      "c5_max": 0.8705882352941177,
+      "c5_mean": 0.2801470588235294,
+      "c5_min": 0.008823529411764706,
+      "c5_n_negative": 0,
+      "c5_n_positive": 3,
+      "c6_mean": 0.3837785661518389,
+      "c6_n_pass": 5,
+      "delta_scale": 0.2,
+      "n_seeds": 8,
+      "overshoot_mean": 2.2671053331227107
+    },
+    {
+      "c5_max": 0.6558823529411765,
+      "c5_mean": 0.2654411764705883,
+      "c5_min": -0.22647058823529412,
+      "c5_n_negative": 1,
+      "c5_n_positive": 4,
+      "c6_mean": 0.3505151637815863,
+      "c6_n_pass": 5,
+      "delta_scale": 0.4,
+      "n_seeds": 8,
+      "overshoot_mean": 2.1351178616757904
+    }
+  ],
+  "c5_mean": 0.30931372549019603,
+  "c5_range": [
+    -0.22647058823529412,
+    0.8735294117647058
+  ],
+  "counts": {
+    "negative": 1,
+    "null": 12,
+    "positive": 11
+  },
+  "features": [
+    {
+      "feature": "noise/signal",
+      "mean_negative": 9.207213376149477,
+      "mean_null": 0.8309544398122167,
+      "mean_positive": 0.7346020616713432,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        9.207213376149477,
+        9.207213376149477
+      ],
+      "range_null": [
+        0.04995085968161378,
+        5.633994012135032
+      ],
+      "range_positive": [
+        0.04200224166393926,
+        4.115838919676255
+      ],
+      "rho_vs_c5": -0.5695652173913043,
+      "rho_vs_c6": -0.013043478260869565
+    },
+    {
+      "feature": "gain within-ckpt r2",
+      "mean_negative": -0.22878178691004236,
+      "mean_null": 0.258957918528167,
+      "mean_positive": 0.7263010750385045,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        -0.22878178691004236,
+        -0.22878178691004236
+      ],
+      "range_null": [
+        -0.22878178691004236,
+        0.5169406529931291
+      ],
+      "range_positive": [
+        0.303717639458875,
+        0.8869853508593646
+      ],
+      "rho_vs_c5": 0.5254069374927337,
+      "rho_vs_c6": -0.7513319206146093
+    },
+    {
+      "feature": "latent norm mean",
+      "mean_negative": 2.09999418258667,
+      "mean_null": 1.5533799479405086,
+      "mean_positive": 1.0192195556380532,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        2.09999418258667,
+        2.09999418258667
+      ],
+      "range_null": [
+        0.8321355581283569,
+        2.4785656929016113
+      ],
+      "range_positive": [
+        0.8321355581283569,
+        1.202048897743225
+      ],
+      "rho_vs_c5": -0.5043906599930243,
+      "rho_vs_c6": -0.08669214468630106
+    },
+    {
+      "feature": "effect spearman (model fit)",
+      "mean_negative": 0.0847242484930472,
+      "mean_null": 0.5527664564171915,
+      "mean_positive": 0.7495812424878209,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        0.0847242484930472,
+        0.0847242484930472
+      ],
+      "range_null": [
+        0.0847242484930472,
+        0.7246495553395238
+      ],
+      "range_positive": [
+        0.6792929170455142,
+        0.8053061518371111
+      ],
+      "rho_vs_c5": 0.48862845186824233,
+      "rho_vs_c6": -0.8143807531137373
+    },
+    {
+      "feature": "realized |displacement|",
+      "mean_negative": 0.39041034409336345,
+      "mean_null": 0.19393585224839194,
+      "mean_positive": 0.20668826166227536,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        0.39041034409336345,
+        0.39041034409336345
+      ],
+      "range_null": [
+        0.042993675487078546,
+        0.4934219135262134
+      ],
+      "range_positive": [
+        0.05370450039995178,
+        0.528520511695131
+      ],
+      "rho_vs_c5": -0.3652173913043478,
+      "rho_vs_c6": -0.24086956521739128
+    },
+    {
+      "feature": "predicted spread",
+      "mean_negative": 0.09237703680992126,
+      "mean_null": 0.44940732295314473,
+      "mean_positive": 1.5050485493107275,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        0.09237703680992126,
+        0.09237703680992126
+      ],
+      "range_null": [
+        0.10796266794204712,
+        0.7770427465438843
+      ],
+      "range_positive": [
+        0.10824143886566162,
+        4.374204508960247
+      ],
+      "rho_vs_c5": 0.2939130434782608,
+      "rho_vs_c6": -0.5147826086956522
+    },
+    {
+      "feature": "planned step",
+      "mean_negative": 0.2347078072361681,
+      "mean_null": 0.08437015512260643,
+      "mean_positive": 0.09247214595996449,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        0.2347078072361681,
+        0.2347078072361681
+      ],
+      "range_null": [
+        0.03372736834507568,
+        0.15844041042210805
+      ],
+      "range_positive": [
+        0.030886331811467653,
+        0.20221981457523192
+      ],
+      "rho_vs_c5": -0.2860869565217391,
+      "rho_vs_c6": -0.2504347826086956
+    },
+    {
+      "feature": "frac draws diverged",
+      "mean_negative": 0.020833333333333332,
+      "mean_null": 0.005208333333333333,
+      "mean_positive": 0.04166666666666667,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        0.020833333333333332,
+        0.020833333333333332
+      ],
+      "range_null": [
+        0.0,
+        0.052083333333333336
+      ],
+      "range_positive": [
+        0.0,
+        0.17708333333333334
+      ],
+      "rho_vs_c5": -0.2657663593270892,
+      "rho_vs_c6": -0.37721676807715887
+    },
+    {
+      "feature": "n directions",
+      "mean_negative": 8.0,
+      "mean_null": 11.333333333333334,
+      "mean_positive": 11.818181818181818,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        8.0,
+        8.0
+      ],
+      "range_null": [
+        7.0,
+        14.0
+      ],
+      "range_positive": [
+        10.0,
+        15.0
+      ],
+      "rho_vs_c5": 0.19962709300476414,
+      "rho_vs_c6": -0.095838670756712
+    },
+    {
+      "feature": "delta_scale (step length)",
+      "mean_negative": 0.4,
+      "mean_null": 0.21666666666666667,
+      "mean_positive": 0.23636363636363633,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        0.4,
+        0.4
+      ],
+      "range_null": [
+        0.1,
+        0.4
+      ],
+      "range_positive": [
+        0.1,
+        0.4
+      ],
+      "rho_vs_c5": -0.19167454300136624,
+      "rho_vs_c6": -0.16218615177038684
+    },
+    {
+      "feature": "overshoot (realized/planned)",
+      "mean_negative": 1.6633888266891952,
+      "mean_null": 2.289708932688896,
+      "mean_positive": 2.1971495362926197,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        1.6633888266891952,
+        1.6633888266891952
+      ],
+      "range_null": [
+        1.274741481374896,
+        3.849347603333452
+      ],
+      "range_positive": [
+        1.73877884650621,
+        2.784991974376545
+      ],
+      "rho_vs_c5": -0.10173913043478258,
+      "rho_vs_c6": -0.23217391304347823
+    },
+    {
+      "feature": "n distinct allocations",
+      "mean_negative": 16.0,
+      "mean_null": 16.0,
+      "mean_positive": 16.0,
+      "n_negative": 1,
+      "n_null": 12,
+      "n_positive": 11,
+      "range_negative": [
+        16.0,
+        16.0
+      ],
+      "range_null": [
+        16.0,
+        16.0
+      ],
+      "range_positive": [
+        16.0,
+        16.0
+      ],
+      "rho_vs_c5": NaN,
+      "rho_vs_c6": NaN
+    }
+  ],
+  "n_cells": 24,
+  "thresholds": {
+    "negative_below": -0.1,
+    "positive_above": 0.3
+  }
+}

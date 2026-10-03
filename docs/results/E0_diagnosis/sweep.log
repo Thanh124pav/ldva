@@ -1,0 +1,97 @@
+[diag] 8 seeds x 3 delta_scales, 6 repeats, +14 random allocations
+wandb: Currently logged in as: pavt1024 (hust_edu_vn) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run ga2xpwd7
+wandb: Tracking run with wandb version 0.23.0
+wandb: Run data is saved locally in /home/pavt1024/vinuni/robotics/ldva/wandb/run-20261003_194453-ga2xpwd7
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run E0diag-criteria
+wandb: ⭐️ View project at https://wandb.ai/hust_edu_vn/ldva
+wandb: 🚀 View run at https://wandb.ai/hust_edu_vn/ldva/runs/ga2xpwd7
+[diag]   seed 0 delta=0.10: C5 spearman(mean)=+0.209 (single-draw +0.215, noise/signal 0.1x) | C6 cos=+0.507 overshoot=1.27x
+[diag]   seed 1 delta=0.10: C5 spearman(mean)=+0.100 (single-draw +0.347, noise/signal 0.5x) | C6 cos=+0.572 overshoot=3.85x
+[diag]   seed 2 delta=0.10: C5 spearman(mean)=+0.482 (single-draw +0.491, noise/signal 1.1x) | C6 cos=+0.241 overshoot=2.78x
+[diag]   seed 3 delta=0.10: C5 spearman(mean)=+0.550 (single-draw +0.212, noise/signal 0.2x) | C6 cos=+0.800 overshoot=1.74x
+[diag]   seed 4 delta=0.10: C5 spearman(mean)=+0.874 (single-draw +0.618, noise/signal 0.1x) | C6 cos=-0.034 overshoot=1.93x
+[diag]   seed 5 delta=0.10: C5 spearman(mean)=+0.679 (single-draw +0.421, noise/signal 0.2x) | C6 cos=+0.324 overshoot=2.22x
+[diag]   seed 6 delta=0.10: C5 spearman(mean)=+0.015 (single-draw +0.403, noise/signal 0.2x) | C6 cos=+0.229 overshoot=2.57x
+[diag]   seed 7 delta=0.10: C5 spearman(mean)=+0.150 (single-draw -0.047, noise/signal 0.7x) | C6 cos=+0.516 overshoot=1.73x
+[diag]   seed 0 delta=0.20: C5 spearman(mean)=+0.271 (single-draw +0.253, noise/signal 0.0x) | C6 cos=+0.498 overshoot=1.29x
+[diag]   seed 1 delta=0.20: C5 spearman(mean)=+0.029 (single-draw +0.335, noise/signal 0.5x) | C6 cos=+0.529 overshoot=3.76x
+[diag]   seed 2 delta=0.20: C5 spearman(mean)=+0.456 (single-draw +0.368, noise/signal 1.7x) | C6 cos=+0.228 overshoot=2.78x
+[diag]   seed 3 delta=0.20: C5 spearman(mean)=+0.018 (single-draw +0.379, noise/signal 0.2x) | C6 cos=+0.790 overshoot=1.91x
+[diag]   seed 4 delta=0.20: C5 spearman(mean)=+0.871 (single-draw +0.653, noise/signal 0.1x) | C6 cos=-0.066 overshoot=1.86x
+[diag]   seed 5 delta=0.20: C5 spearman(mean)=+0.576 (single-draw +0.415, noise/signal 0.2x) | C6 cos=+0.331 overshoot=2.31x
+[diag]   seed 6 delta=0.20: C5 spearman(mean)=+0.012 (single-draw +0.303, noise/signal 0.3x) | C6 cos=+0.234 overshoot=2.51x
+[diag]   seed 7 delta=0.20: C5 spearman(mean)=+0.009 (single-draw -0.291, noise/signal 1.0x) | C6 cos=+0.526 overshoot=1.71x
+[diag]   seed 0 delta=0.40: C5 spearman(mean)=+0.206 (single-draw +0.271, noise/signal 0.1x) | C6 cos=+0.470 overshoot=1.30x
+[diag]   seed 1 delta=0.40: C5 spearman(mean)=-0.024 (single-draw +0.441, noise/signal 0.8x) | C6 cos=+0.405 overshoot=3.11x
+[diag]   seed 2 delta=0.40: C5 spearman(mean)=+0.388 (single-draw +0.409, noise/signal 4.1x) | C6 cos=+0.198 overshoot=2.61x
+[diag]   seed 3 delta=0.40: C5 spearman(mean)=+0.656 (single-draw +0.179, noise/signal 0.1x) | C6 cos=+0.799 overshoot=1.89x
+[diag]   seed 4 delta=0.40: C5 spearman(mean)=+0.644 (single-draw +0.347, noise/signal 0.0x) | C6 cos=-0.124 overshoot=1.88x
+[diag]   seed 5 delta=0.40: C5 spearman(mean)=+0.568 (single-draw +0.415, noise/signal 0.2x) | C6 cos=+0.413 overshoot=2.16x
+[diag]   seed 6 delta=0.40: C5 spearman(mean)=-0.088 (single-draw +0.259, noise/signal 5.6x) | C6 cos=+0.202 overshoot=2.45x
+[diag]   seed 7 delta=0.40: C5 spearman(mean)=-0.226 (single-draw +0.150, noise/signal 9.2x) | C6 cos=+0.441 overshoot=1.66x
+
+======================================================================================================================
+CRITERION 5 / 6 DIAGNOSIS
+======================================================================================================================
+   seed  delta |  C5 1-draw    C5 avg  noise/sig  %diverged |   C6 cos  overshoot   C5   C6
+----------------------------------------------------------------------------------------------------------------------
+      0   0.10 |     +0.215    +0.209       0.1x       0.0% |   +0.507      1.27x FAIL PASS
+      1   0.10 |     +0.347    +0.100       0.5x       0.0% |   +0.572      3.85x FAIL PASS
+      2   0.10 |     +0.491    +0.482       1.1x      13.5% |   +0.241      2.78x PASS FAIL
+      3   0.10 |     +0.212    +0.550       0.2x       0.0% |   +0.800      1.74x PASS PASS
+      4   0.10 |     +0.618    +0.874       0.1x       0.0% |   -0.034      1.93x PASS FAIL
+      5   0.10 |     +0.421    +0.679       0.2x       0.0% |   +0.324      2.22x PASS PASS
+      6   0.10 |     +0.403    +0.015       0.2x       0.0% |   +0.229      2.57x FAIL FAIL
+      7   0.10 |     -0.047    +0.150       0.7x       0.0% |   +0.516      1.73x FAIL PASS
+      0   0.20 |     +0.253    +0.271       0.0x       0.0% |   +0.498      1.29x FAIL PASS
+      1   0.20 |     +0.335    +0.029       0.5x       0.0% |   +0.529      3.76x FAIL PASS
+      2   0.20 |     +0.368    +0.456       1.7x      14.6% |   +0.228      2.78x PASS FAIL
+      3   0.20 |     +0.379    +0.018       0.2x       0.0% |   +0.790      1.91x FAIL PASS
+      4   0.20 |     +0.653    +0.871       0.1x       0.0% |   -0.066      1.86x PASS FAIL
+      5   0.20 |     +0.415    +0.576       0.2x       0.0% |   +0.331      2.31x PASS PASS
+      6   0.20 |     +0.303    +0.012       0.3x       0.0% |   +0.234      2.51x FAIL FAIL
+      7   0.20 |     -0.291    +0.009       1.0x       0.0% |   +0.526      1.71x FAIL PASS
+      0   0.40 |     +0.271    +0.206       0.1x       0.0% |   +0.470      1.30x FAIL PASS
+      1   0.40 |     +0.441    -0.024       0.8x       1.0% |   +0.405      3.11x FAIL PASS
+      2   0.40 |     +0.409    +0.388       4.1x      17.7% |   +0.198      2.61x PASS FAIL
+      3   0.40 |     +0.179    +0.656       0.1x       0.0% |   +0.799      1.89x PASS PASS
+      4   0.40 |     +0.347    +0.644       0.0x       0.0% |   -0.124      1.88x PASS FAIL
+      5   0.40 |     +0.415    +0.568       0.2x       0.0% |   +0.413      2.16x PASS PASS
+      6   0.40 |     +0.259    -0.088       5.6x       5.2% |   +0.202      2.45x FAIL FAIL
+      7   0.40 |     +0.150    -0.226       9.2x       2.1% |   +0.441      1.66x FAIL PASS
+----------------------------------------------------------------------------------------------------------------------
+  cells: 24   criterion 5: 11 positive, 12 null, 1 negative   criterion 6: 15 pass
+  averaging over draws moved criterion 5 by -0.005 (+0.314 -> +0.309)
+  criterion 5 vs noise/signal : rho -0.570
+  criterion 5 vs %diverged    : rho -0.266
+  criterion 5 vs overshoot    : rho -0.102
+  criterion 6 vs overshoot    : rho -0.232
+  report: runs/E0_diag/diagnose_criteria.json
+======================================================================================================================
+
+wandb: uploading artifact run-ga2xpwd7-cells; uploading media/table/cells_0_975b32e49f47ffac6578.table.json; updating run metadata
+wandb: uploading artifact run-ga2xpwd7-cells; uploading output.log; uploading wandb-summary.json
+wandb: uploading artifact run-ga2xpwd7-cells; uploading config.yaml
+wandb: uploading artifact run-ga2xpwd7-cells; uploading history steps 0-0, summary, console lines 23-62
+wandb: uploading data
+wandb: 
+wandb: Run summary:
+wandb:     analysis/corr_c5_vs_frac_diverged -0.26577
+wandb: analysis/corr_c5_vs_noise_over_signal -0.56957
+wandb:         analysis/corr_c5_vs_overshoot -0.10174
+wandb: analysis/corr_c6_vs_noise_over_signal -0.01304
+wandb:         analysis/corr_c6_vs_overshoot -0.23217
+wandb:    analysis/diverged_when_c5_negative 0.02083
+wandb:    analysis/diverged_when_c5_positive 0.04167
+wandb:   analysis/improvement_from_averaging -0.00502
+wandb:                      analysis/n_cells 24
+wandb:                analysis/n_negative_c5 1
+wandb:                                    +7 ...
+wandb: 
+wandb: 🚀 View run E0diag-criteria at: https://wandb.ai/hust_edu_vn/ldva/runs/ga2xpwd7
+wandb: ⭐️ View project at: https://wandb.ai/hust_edu_vn/ldva
+wandb: Synced 5 W&B file(s), 1 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261003_194453-ga2xpwd7/logs
