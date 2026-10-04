@@ -100,6 +100,19 @@ class DirectionConfig:
     require_outward: bool = True
     require_density_decrease: bool = True
     require_trust_region: bool = True
+    #: Reject a candidate whose |cos| with an already-accepted direction
+    #: exceeds this. Without it the candidate set is redundant, and redundancy
+    #: caps the only interpretable measure of direction control.
+    #:
+    #: Measured before this filter existed: 12-15 candidates spanned ~2.5
+    #: effective dimensions with a mean pairwise |cos| of ~0.5, so many
+    #: candidates were near duplicates. Specificity - does collection move the
+    #: latents along the direction asked for rather than one that was not -
+    #: then cannot clear 2 standard deviations even with perfect execution,
+    #: because the null is full of near-copies of the direction being tested.
+    #: In raw metadata space the realized cosine was 1.000 and the z-score
+    #: still only 1.79-1.91. `None` disables the filter.
+    max_pairwise_cosine: float | None = 0.8
     #: ablation 6 of PLAN.md 18: random directions instead of local PCA
     use_random_directions: bool = False
     n_random_per_cluster: int = 4
@@ -157,12 +170,40 @@ class DirectionGenerator:
                     source="random" if cfg.use_random_directions else "pca",
                 )
                 verdict = self._evaluate(cand, c, z_support, support_scale)
+                if verdict["keep"] and cfg.max_pairwise_cosine is not None:
+                    dup = self._too_similar(cand, out, cfg.max_pairwise_cosine)
+                    if dup is not None:
+                        verdict = {"keep": False,
+                                   "reason": f"duplicate_of_direction_{dup}"}
                 if verdict["keep"]:
                     out.append(cand)
                     did += 1
                 else:
                     self.rejected_.append({**cand.summary(), "reason": verdict["reason"]})
         return out
+
+    @staticmethod
+    def _too_similar(cand, accepted: list, max_cos: float) -> int | None:
+        """Direction id of an accepted candidate this one nearly duplicates.
+
+        Compared across clusters as well as within one: two domains sitting on
+        the same elongated manifold produce near-identical leading PCA
+        directions, which is where most of the redundancy came from.
+
+        The comparison is **signed**, deliberately. `+v` and `-v` have
+        |cos| = 1 but are opposite requests - expand outward on one side of a
+        domain or the other - and both are meaningful, so an absolute-value
+        test would delete half of every candidate set. Only a candidate
+        pointing the *same* way as an accepted one is a duplicate.
+        """
+        v = np.asarray(cand.vector, dtype=np.float64)
+        v = v / max(np.linalg.norm(v), 1e-12)
+        for other in accepted:
+            w = np.asarray(other.vector, dtype=np.float64)
+            w = w / max(np.linalg.norm(w), 1e-12)
+            if float(np.dot(v, w)) > max_cos:
+                return int(other.direction_id)
+        return None
 
     # ---- direction proposals -------------------------------------------
     def _pca_vectors(self, c: ClusterState):

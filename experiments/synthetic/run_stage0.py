@@ -50,6 +50,10 @@ from ldva.analysis.acquisition_calibration import (  # noqa: E402
     candidate_allocations,
     deduplicate,
 )
+from ldva.analysis.direction_validation import (  # noqa: E402
+    direction_specificity,
+    participation_ratio,
+)
 from ldva.analysis.latent_geometry import GeometryGate, latent_geometry_report  # noqa: E402
 from ldva.analysis.wandb_logger import make_logger  # noqa: E402
 from ldva.data.context_dataset import ContextDataset  # noqa: E402
@@ -377,6 +381,20 @@ def main() -> dict:
         moves.append(measure_realized_latent_movement(
             model, world, plan, d, ref_ckpt.features, rng_acq, n_per_anchor=24))
     cos = np.array([m["direction_cosine"] for m in moves])
+    # Is the movement SPECIFIC to the direction asked for? A raw cosine is not
+    # interpretable alone: the encoder collapses the 32-dimensional latent
+    # space to 1.0-2.2 effective dimensions, so every candidate direction
+    # points into the same narrow subspace and any displacement aligns with
+    # any direction. Measured over 8 seeds, a cosine of +0.910 sat only 1.3
+    # standard deviations above requesting a *different* direction, and no
+    # cell of 16 reached 2. See docs/E0_criteria_resolution.md.
+    spec = direction_specificity(
+        {m["direction_id"]: np.asarray(m["realized_delta"]) for m in moves
+         if "realized_delta" in m},
+        {d.direction_id: np.asarray(d.vector) for d in directions},
+    )
+    report["direction_specificity"] = spec
+    report["latent_participation_ratio"] = participation_ratio(z_all)
     report["metadata_control"] = {
         "per_direction": moves,
         "direction_cosine_mean": float(cos.mean()),
@@ -388,6 +406,11 @@ def main() -> dict:
     }
     say(f"metadata control: realized cosine mean={cos.mean():+.3f}, "
         f"{100*(cos>0).mean():.0f}% of directions move the right way")
+    say(f"  direction specificity: z={spec.get('z_score_mean', float('nan')):+.2f} "
+        f"vs the other candidates (>=2 = distinguishable), "
+        f"{100*spec.get('frac_directions_above_2sd', 0):.0f}% of directions clear 2sd; "
+        f"latent effective dim={report['latent_participation_ratio']:.2f} "
+        f"of {z_all.shape[1]}")
 
     # ---- 10. predicted vs realized gain (criterion 5) --------------------
     oracle = SyntheticAcquisitionOracle(
@@ -596,6 +619,7 @@ def _small_problem_check(objective, model, sampler, directions, pctx, cfg, seeds
 
 def _success_criteria(report: dict, solvers: dict, calib: list, cfg: dict) -> dict:
     """The six criteria of PLAN.md 14, each with the number behind it."""
+    spec_z = report.get("direction_specificity", {}).get("z_score_mean", float("nan"))
     final = report["datamodel"]["final_val"]
     abl = report["ablations"]
     geo = report["latent_geometry"]
@@ -687,13 +711,28 @@ def _success_criteria(report: dict, solvers: dict, calib: list, cfg: dict) -> di
             "passed": bool(np.isfinite(c5) and c5 > 0.3),
             "rule": "spearman(predicted, realized) > 0.3",
         },
+        # The rule changed from "cosine > 0.3" to a specificity z-score, and
+        # the reason is measured: with the latent space collapsed to ~1
+        # effective dimension the 0.3 threshold sits BELOW chance, so a model
+        # with a degenerate representation passed while a richer one failed -
+        # exactly backwards. The z-score asks whether the realized movement
+        # matches the direction that was requested better than one that was
+        # not, which is the claim the acquisition loop actually relies on.
         "6_metadata_moves_latents": {
+            "specificity_z_score": spec_z,
+            "frac_directions_above_2sd": report.get("direction_specificity", {}).get(
+                "frac_directions_above_2sd", float("nan")),
+            "latent_effective_dim": report.get("latent_participation_ratio", float("nan")),
             "direction_cosine_mean": c6,
+            "null_abs_mean": report.get("direction_specificity", {}).get(
+                "null_abs_mean", float("nan")),
             "frac_directions_positive": report["metadata_control"]["frac_directions_positive"],
             "reachability_cosine_mean": report["metadata_control"]["reachability_cosine_mean"],
             "jacobian_r2_heldout_mean": report["metadata_control"]["jacobian_r2_heldout_mean"],
-            "passed": bool(np.isfinite(c6) and c6 > 0.3),
-            "rule": "mean cosine(desired, realized) > 0.3",
+            "passed": bool(np.isfinite(spec_z) and spec_z >= 2.0),
+            "rule": "mean z-score of cos(desired, realized) against the other "
+                    "candidate directions >= 2 (raw cosine is uninterpretable "
+                    "when the latent space is collapsed)",
         },
     }
 

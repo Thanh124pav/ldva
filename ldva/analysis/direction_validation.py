@@ -70,6 +70,12 @@ def measure_realized_latent_movement(
             "n_anchors": int(len(deltas)),
             "n_per_anchor": int(n_per_anchor),
             "paired_sampling": bool(paired),
+            # the mean realized displacement itself, so a caller can score
+            # this direction against the OTHER candidate directions. Without
+            # the vector, only the raw cosine is available, and that overstates
+            # control whenever the latent space is collapsed - see
+            # `direction_specificity`.
+            "realized_delta": deltas.mean(0).tolist(),
         }
     )
     return out
@@ -114,4 +120,96 @@ def validate_all_directions(
             np.mean([r["reachability_cosine"] for r in rows])) if rows else float("nan"),
         "jacobian_r2_heldout_mean": float(
             np.mean([r["jacobian_r2_heldout"] for r in rows])) if rows else float("nan"),
+    }
+
+
+# ---- is the movement SPECIFIC to the direction asked for? -----------------
+
+
+def participation_ratio(z: np.ndarray) -> float:
+    """Effective number of latent dimensions in use.
+
+    `(sum lambda)^2 / sum lambda^2` over the covariance eigenvalues: equal to
+    the latent dimension when variance is spread evenly, and to 1 when one
+    direction dominates. Measured on this project it comes out at 1.0-2.2 on a
+    32-dimensional latent space, i.e. the encoder collapses to roughly one
+    effective dimension - which is why a raw cosine overstates control.
+    """
+    z = np.asarray(z, dtype=np.float64)
+    if z.ndim != 2 or z.shape[0] < 2:
+        return float("nan")
+    cov = np.cov(z - z.mean(0), rowvar=False)
+    lam = np.linalg.eigvalsh(np.atleast_2d(cov))
+    lam = lam[lam > 0]
+    if lam.size == 0:
+        return float("nan")
+    return float(lam.sum() ** 2 / np.sum(lam ** 2))
+
+
+def direction_specificity(
+    realized_deltas: dict[int, np.ndarray],
+    direction_vectors: dict[int, np.ndarray],
+) -> dict:
+    """How much better is the realized movement than requesting *another*
+    direction?
+
+    A raw `cos(delta_i, v_i)` is not interpretable on its own. Between two
+    vectors in a d-dimensional space the chance level is about
+    `sqrt(2/(pi*d))`, so a collapsed latent space inflates it for free: with an
+    effective dimensionality near 1, every candidate direction points into the
+    same narrow subspace and any displacement aligns with any direction.
+    Measured here, a cosine of +0.910 - which reads as near-perfect control -
+    sat only 1.3 standard deviations above requesting a different direction.
+
+    The null therefore has to be the **other candidate directions**, not
+    isotropic noise: "did collection move the latents along what we asked for,
+    rather than along something else we might have asked for". That controls
+    for the dimensionality and for the structure of the direction set at once.
+    An isotropic null does neither, and using one inflated the z-scores
+    threefold.
+
+    Returns the mean z-score over directions; `>= 2` is the point at which the
+    requested direction is distinguishable from an arbitrary one.
+    """
+    ids = [i for i in realized_deltas if i in direction_vectors]
+    rows = []
+    for i in ids:
+        delta = np.asarray(realized_deltas[i], dtype=np.float64).reshape(-1)
+        dn = delta / (np.linalg.norm(delta) + 1e-12)
+        own = direction_vectors[i]
+        own = np.asarray(own, dtype=np.float64).reshape(-1)
+        cos_own = float(np.dot(dn, own / (np.linalg.norm(own) + 1e-12)))
+        null = []
+        for j in ids:
+            if j == i:
+                continue
+            v = np.asarray(direction_vectors[j], dtype=np.float64).reshape(-1)
+            null.append(float(np.dot(dn, v / (np.linalg.norm(v) + 1e-12))))
+        if not null:
+            continue
+        null = np.asarray(null, dtype=np.float64)
+        sd = float(null.std())
+        rows.append({
+            "direction_id": int(i),
+            "cos_desired": cos_own,
+            "null_mean": float(null.mean()),
+            "null_abs_mean": float(np.abs(null).mean()),
+            "null_std": sd,
+            "z_score": float((cos_own - null.mean()) / max(sd, 1e-9)),
+        })
+    if not rows:
+        return {"n_directions": 0, "z_score_mean": float("nan")}
+    z = np.array([r["z_score"] for r in rows], dtype=np.float64)
+    cos = np.array([r["cos_desired"] for r in rows], dtype=np.float64)
+    nullabs = np.array([r["null_abs_mean"] for r in rows], dtype=np.float64)
+    return {
+        "n_directions": len(rows),
+        "cos_desired_mean": float(np.nanmean(cos)),
+        "null_abs_mean": float(np.nanmean(nullabs)),
+        "cos_over_null": float(np.nanmean(cos) / max(np.nanmean(nullabs), 1e-9)),
+        "z_score_mean": float(np.nanmean(z)),
+        "z_score_sem": float(np.nanstd(z) / max(np.sqrt(len(z)), 1)),
+        "frac_directions_above_2sd": float(np.mean(z >= 2.0)),
+        "null": "permutation over the other candidate directions",
+        "per_direction": rows,
     }

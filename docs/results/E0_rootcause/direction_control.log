@@ -1,0 +1,95 @@
+[dirctrl] 8 seeds x epochs [5, 60] x 2 replicates, 2000 chance directions each
+wandb: Currently logged in as: pavt1024 (hust_edu_vn) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: Tracking run with wandb version 0.23.0
+wandb: Run data is saved locally in /home/pavt1024/vinuni/robotics/ldva/wandb/run-20261004_184139-39ap2xz7
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run E0dirctrl-direction-control
+wandb: ⭐️ View project at https://wandb.ai/hust_edu_vn/ldva
+wandb: 🚀 View run at https://wandb.ai/hust_edu_vn/ldva/runs/39ap2xz7
+[dirctrl]   seed 0
+[dirctrl]     epochs=5   fit=+0.332 | C6=+0.700+/-0.140 z=+1.37+/-0.32 eff_dim=1.18
+[dirctrl]     epochs=60  fit=+0.741 | C6=+0.236+/-0.241 z=+0.67+/-0.54 eff_dim=2.13
+[dirctrl]   seed 1
+[dirctrl]     epochs=5   fit=+0.429 | C6=+0.426+/-0.001 z=+0.98+/-0.10 eff_dim=1.33
+[dirctrl]     epochs=60  fit=+0.582 | C6=+0.633+/-0.049 z=+1.71+/-0.08 eff_dim=1.87
+[dirctrl]   seed 2
+[dirctrl]     epochs=5   fit=+0.626 | C6=+0.403+/-0.167 z=+0.66+/-0.25 eff_dim=1.16
+[dirctrl]     epochs=60  fit=+0.815 | C6=+0.156+/-0.160 z=+0.25+/-0.25 eff_dim=2.16
+[dirctrl]   seed 3
+[dirctrl]     epochs=5   fit=+0.360 | C6=+0.815+/-0.022 z=+1.58+/-0.08 eff_dim=1.15
+[dirctrl]     epochs=60  fit=+0.677 | C6=+0.653+/-0.001 z=+1.82+/-0.04 eff_dim=1.90
+[dirctrl]   seed 4
+[dirctrl]     epochs=5   fit=+0.635 | C6=+0.581+/-0.038 z=+1.33+/-0.06 eff_dim=1.11
+[dirctrl]     epochs=60  fit=+0.805 | C6=+0.101+/-0.002 z=+0.07+/-0.09 eff_dim=1.25
+[dirctrl]   seed 5
+[dirctrl]     epochs=5   fit=+0.518 | C6=+0.910+/-0.080 z=+1.34+/-0.04 eff_dim=1.04
+[dirctrl]     epochs=60  fit=+0.769 | C6=+0.353+/-0.174 z=+0.85+/-0.48 eff_dim=1.42
+[dirctrl]   seed 6
+[dirctrl]     epochs=5   fit=+0.643 | C6=+0.180+/-0.045 z=+0.39+/-0.26 eff_dim=1.27
+[dirctrl]     epochs=60  fit=+0.708 | C6=-0.022+/-0.237 z=+0.30+/-0.32 eff_dim=1.63
+[dirctrl]   seed 7
+[dirctrl]     epochs=5   fit=-0.070 | C6=+0.826+/-0.015 z=+1.78+/-0.08 eff_dim=1.78
+[dirctrl]     epochs=60  fit=+0.185 | C6=+0.452+/-0.288 z=+1.85+/-1.58 eff_dim=1.96
+
+========================================================================================================
+CRITERION 6: RAW COSINE vs ABOVE-CHANCE z-SCORE
+========================================================================================================
+   seed  epochs      fit   C6 (cos)  z vs chance   eff_dim
+      0       5   +0.332     +0.700        +1.37      1.18
+      0      60   +0.741     +0.236        +0.67      2.13
+      1       5   +0.429     +0.426        +0.98      1.33
+      1      60   +0.582     +0.633        +1.71      1.87
+      2       5   +0.626     +0.403        +0.66      1.16
+      2      60   +0.815     +0.156        +0.25      2.16
+      3       5   +0.360     +0.815        +1.58      1.15
+      3      60   +0.677     +0.653        +1.82      1.90
+      4       5   +0.635     +0.581        +1.33      1.11
+      4      60   +0.805     +0.101        +0.07      1.25
+      5       5   +0.518     +0.910        +1.34      1.04
+      5      60   +0.769     +0.353        +0.85      1.42
+      6       5   +0.643     +0.180        +0.39      1.27
+      6      60   +0.708     -0.022        +0.30      1.63
+      7       5   -0.070     +0.826        +1.78      1.78
+      7      60   +0.185     +0.452        +1.85      1.96
+--------------------------------------------------------------------------------------------------------
+   seed       dC6      SE        dz      SE  d eff_dim  fell?
+      0    -0.465   0.197     -0.70    0.44      +0.96  cos=Y z=n
+      1    +0.207   0.035     +0.73    0.09      +0.54  cos=n z=n
+      2    -0.246   0.164     -0.41    0.25      +1.00  cos=n z=n
+      3    -0.161   0.015     +0.24    0.06      +0.75  cos=Y z=n
+      4    -0.480   0.027     -1.26    0.08      +0.14  cos=Y z=Y
+      5    -0.557   0.136     -0.49    0.34      +0.37  cos=Y z=n
+      6    -0.202   0.171     -0.09    0.29      +0.35  cos=n z=n
+      7    -0.374   0.204     +0.07    1.12      +0.18  cos=n z=n
+--------------------------------------------------------------------------------------------------------
+  mean dC6 -0.285 +/- 0.081   mean dz -0.24 +/- 0.20   mean d eff_dim +0.54
+  cosine fell resolvably in 4/8 seeds, z-score in 1/8
+  rho(cosine, effective dim) = -0.338
+
+  VERDICT: criterion 6 is partly a DIMENSIONALITY ARTEFACT: the raw cosine falls while the above-chance z-score holds
+  report: runs/E0_dirctrl/diagnose_direction_control.json
+========================================================================================================
+
+wandb: uploading artifact run-39ap2xz7-cells; uploading media/table/cells_0_f34879d79c2b8e37e48c.table.json; updating run metadata
+wandb: uploading artifact run-39ap2xz7-cells; uploading wandb-summary.json; uploading output.log
+wandb: uploading artifact run-39ap2xz7-cells
+wandb: uploading history steps 0-0, summary, console lines 23-62
+wandb: 
+wandb: Run summary:
+wandb:                 analysis/delta_cos_mean -0.28481
+wandb:                  analysis/delta_cos_sem 0.08079
+wandb: analysis/delta_participation_ratio_mean 0.53679
+wandb:                   analysis/delta_z_mean -0.2403
+wandb:                    analysis/delta_z_sem 0.20256
+wandb:                        analysis/n_cells 16
+wandb:                        analysis/n_seeds 8
+wandb:               analysis/n_seeds_cos_fell 4
+wandb:                 analysis/n_seeds_z_fell 1
+wandb: analysis/rho_cos_vs_participation_ratio -0.33824
+wandb:                                      +1 ...
+wandb: 
+wandb: 🚀 View run E0dirctrl-direction-control at: https://wandb.ai/hust_edu_vn/ldva/runs/39ap2xz7
+wandb: ⭐️ View project at: https://wandb.ai/hust_edu_vn/ldva
+wandb: Synced 5 W&B file(s), 1 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261004_184139-39ap2xz7/logs

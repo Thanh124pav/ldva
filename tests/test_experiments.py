@@ -194,6 +194,44 @@ def test_main_model_has_no_checkpoint_id_embedding_by_default(loop_mod):
     assert loop_mod.build_config(args)["ckpt_id_ablation"] is True
 
 
+def test_stage0_criterion6_rejects_a_high_cosine_in_a_collapsed_space(stage0_mod):
+    """A raw cosine is uninterpretable when the latent space is collapsed.
+
+    Measured over 8 seeds, a realized cosine of +0.910 sat only 1.3 standard
+    deviations above requesting a *different* direction, because the encoder
+    uses ~1 of 32 latent dimensions and every candidate points into the same
+    subspace. The old rule (cosine > 0.3) therefore passed degenerate
+    representations; the specificity z-score must reject this one.
+    """
+    report = {
+        "datamodel": {"final_val": {"effect_mse": 0.1, "effect_gain_over_scalar": 2.0,
+                                    "gain_mse": 0.01, "gain_within_mse": 0.02,
+                                    "gain_within_r2": 0.8}},
+        "ablations": {"scalar_readout": {"effect_mse": 0.3},
+                      "additive_utility": {"gain_mse": 0.02, "gain_within_mse": 0.04,
+                                           "gain_within_r2": 0.6}},
+        "latent_geometry": {
+            "neighbor": {"neighbor_consistency_ratio": 0.4, "frac_probes_consistent": 0.8},
+            "additivity": {"additive_r2_heldout": -0.3},
+            "gain_signal": {"gain_within_group_share": 0.8}},
+        "calibration": {"report": {"spearman": 0.7, "picked_the_best": True,
+                                   "regret_normalized": 0.1}},
+        # a cosine that looks excellent, from a one-dimensional latent space
+        "metadata_control": {"direction_cosine_mean": 0.91,
+                             "frac_directions_positive": 1.0,
+                             "reachability_cosine_mean": 0.98,
+                             "jacobian_r2_heldout_mean": 0.4},
+        "direction_specificity": {"z_score_mean": 1.3,
+                                  "frac_directions_above_2sd": 0.0,
+                                  "null_abs_mean": 0.88},
+        "latent_participation_ratio": 1.04,
+    }
+    crit = stage0_mod._success_criteria(report, {}, [], {})["6_metadata_moves_latents"]
+    assert crit["passed"] is False, "a collapsed space must not pass on its raw cosine"
+    assert crit["direction_cosine_mean"] == 0.91
+    assert crit["specificity_z_score"] == 1.3
+
+
 def test_stage0_criteria_are_the_six_of_setup_30(stage0_mod):
     report = {
         "datamodel": {"final_val": {
@@ -212,6 +250,12 @@ def test_stage0_criteria_are_the_six_of_setup_30(stage0_mod):
         "metadata_control": {"direction_cosine_mean": 0.4, "frac_directions_positive": 0.9,
                              "reachability_cosine_mean": 0.9,
                              "jacobian_r2_heldout_mean": 0.3},
+        # criterion 6 is scored on specificity against the other candidate
+        # directions, not on the raw cosine: with a collapsed latent space the
+        # old 0.3 threshold sat below chance
+        "direction_specificity": {"z_score_mean": 3.1, "frac_directions_above_2sd": 0.8,
+                                  "null_abs_mean": 0.2},
+        "latent_participation_ratio": 6.0,
     }
 
     class _R:
@@ -244,6 +288,10 @@ def test_stage0_criteria_fail_when_the_evidence_is_absent(stage0_mod):
                              "frac_directions_positive": 0.1,
                              "reachability_cosine_mean": 0.2,
                              "jacobian_r2_heldout_mean": 0.0},
+        "direction_specificity": {"z_score_mean": float("nan"),
+                                  "frac_directions_above_2sd": 0.0,
+                                  "null_abs_mean": 0.9},
+        "latent_participation_ratio": 1.1,
     }
     crit = stage0_mod._success_criteria(report, {}, [], {})
     assert not any(c["passed"] for c in crit.values())

@@ -71,15 +71,37 @@ def test_synthetic_adapter_satisfies_the_contract():
     assert a.acquisition_cost(req).shape == (7,)
 
 
-def test_synthetic_initial_dataset_has_incomplete_coverage():
-    """If D_0 already spans the metadata box, directional acquisition has
-    nowhere to expand and the experiment is vacuous."""
+def test_synthetic_initial_dataset_is_incomplete_but_full_rank():
+    """D_0 needs BOTH properties, and they pull against each other.
+
+    Incomplete extent: if D_0 already spans the metadata box, directional
+    acquisition has nowhere to expand and the experiment is vacuous.
+
+    Full rank: if D_0 lies on a lower-dimensional manifold, local PCA inside it
+    yields near-duplicate candidate directions, and direction specificity then
+    cannot clear 2 standard deviations *even when execution is perfect* - in
+    raw metadata space the realized cosine is 1.000 and the z-score was still
+    only 1.79-1.91 with the old two-mode corner, whose metadata manifold had
+    1.16 effective dimensions out of 3. See docs/E0_criteria_resolution.md.
+    """
+    from ldva.analysis.direction_validation import participation_ratio
+
     a = get_adapter("synthetic", seed=0)
-    rng = np.random.default_rng(0)
-    d0 = a.initial_dataset(200, rng)
+    d0 = a.initial_dataset(300, np.random.default_rng(0))
     mn = a.metadata_spec.normalize(d0.metadata)
+
     span = mn.max(0) - mn.min(0)
-    assert np.any(span < 0.7)
+    assert float(np.prod(span)) < 0.30, (
+        f"D_0 covers {float(np.prod(span)):.2f} of the box; acquisition has "
+        "nothing to expand into")
+    assert np.all(np.abs(mn.mean(0) - 0.5) > 0.15), (
+        "D_0 is centred in the box, so it is not a corner")
+
+    d = mn.shape[1]
+    pr = participation_ratio(mn)
+    assert pr > 0.6 * d, (
+        f"D_0 spans only {pr:.2f} of {d} effective dimensions; local PCA will "
+        "produce near-duplicate directions and cap criterion 6")
 
 
 def test_collected_data_is_usable_by_the_rest_of_the_pipeline():

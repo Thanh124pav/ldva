@@ -1,0 +1,95 @@
+[ceiling] 6 seeds: effect-label dim, true-latent ceiling, metadata ceiling, learned model
+wandb: Currently logged in as: pavt1024 (hust_edu_vn) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run owtfphby
+wandb: Tracking run with wandb version 0.23.0
+wandb: Run data is saved locally in /home/pavt1024/vinuni/robotics/ldva/wandb/run-20261004_225311-owtfphby
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run E0ceiling2-ceiling
+wandb: ⭐️ View project at https://wandb.ai/hust_edu_vn/ldva
+wandb: 🚀 View run at https://wandb.ai/hust_edu_vn/ldva/runs/owtfphby
+[ceiling]   seed 0
+[ceiling]     effect labels: eff_dim=54.23 (top singular share 0.06)
+[ceiling]     TRUE latent  : eff_dim=1.17 z=+1.85 cos=+0.926 pass=False
+[ceiling]     METADATA     : eff_dim=2.24 z=+2.02 cos=+1.000 dir_set_dim=2.56 pair_cos=0.473 pass=True
+[ceiling]     LEARNED      : eff_dim=1.49 z=+0.54 cos=+0.232 pass=False
+[ceiling]   seed 1
+[ceiling]     effect labels: eff_dim=53.85 (top singular share 0.06)
+[ceiling]     TRUE latent  : eff_dim=1.11 z=+1.79 cos=+0.914 pass=False
+[ceiling]     METADATA     : eff_dim=2.29 z=+1.93 cos=+1.000 dir_set_dim=2.45 pair_cos=0.493 pass=False
+[ceiling]     LEARNED      : eff_dim=1.98 z=+0.65 cos=+0.301 pass=False
+[ceiling]   seed 2
+[ceiling]     effect labels: eff_dim=64.27 (top singular share 0.07)
+[ceiling]     TRUE latent  : eff_dim=1.71 z=+1.78 cos=+0.969 pass=False
+[ceiling]     METADATA     : eff_dim=2.26 z=+2.18 cos=+1.000 dir_set_dim=2.73 pair_cos=0.440 pass=True
+[ceiling]     LEARNED      : eff_dim=1.72 z=+1.17 cos=+0.606 pass=False
+[ceiling]   seed 3
+[ceiling]     effect labels: eff_dim=51.58 (top singular share 0.05)
+[ceiling]     TRUE latent  : eff_dim=1.27 z=+1.90 cos=+0.951 pass=False
+[ceiling]     METADATA     : eff_dim=2.27 z=+2.48 cos=+1.000 dir_set_dim=2.44 pair_cos=0.416 pass=True
+[ceiling]     LEARNED      : eff_dim=1.42 z=+1.22 cos=+0.638 pass=False
+[ceiling]   seed 4
+[ceiling]     effect labels: eff_dim=32.15 (top singular share 0.08)
+[ceiling]     TRUE latent  : eff_dim=1.50 z=+1.89 cos=+0.930 pass=False
+[ceiling]     METADATA     : eff_dim=2.26 z=+2.38 cos=+0.999 dir_set_dim=2.37 pair_cos=0.450 pass=True
+[ceiling]     LEARNED      : eff_dim=2.53 z=+1.73 cos=+0.599 pass=False
+[ceiling]   seed 5
+[ceiling]     effect labels: eff_dim=52.65 (top singular share 0.09)
+[ceiling]     TRUE latent  : eff_dim=1.52 z=+2.04 cos=+0.955 pass=True
+[ceiling]     METADATA     : eff_dim=2.29 z=+2.33 cos=+1.000 dir_set_dim=2.51 pair_cos=0.412 pass=True
+[ceiling]     LEARNED      : eff_dim=2.39 z=+1.00 cos=+0.452 pass=False
+
+========================================================================================================
+CEILINGS FOR CRITERION 6 (direction specificity, z >= 2 to pass)
+========================================================================================================
+   seed  label dim | representation   eff_dim    spec z      cos  n_dir   pass
+      0      54.23 |    true latent      1.17     +1.85   +0.926      5     no
+                   |       metadata      2.24     +2.02   +1.000     10    YES
+                   |        learned      1.49     +0.54   +0.232      4     no
+      1      53.85 |    true latent      1.11     +1.79   +0.914     10     no
+                   |       metadata      2.29     +1.93   +1.000     10     no
+                   |        learned      1.98     +0.65   +0.301     11     no
+      2      64.27 |    true latent      1.71     +1.78   +0.969      7     no
+                   |       metadata      2.26     +2.18   +1.000      9    YES
+                   |        learned      1.72     +1.17   +0.606      7     no
+      3      51.58 |    true latent      1.27     +1.90   +0.951      8     no
+                   |       metadata      2.27     +2.48   +1.000      6    YES
+                   |        learned      1.42     +1.22   +0.638      9     no
+      4      32.15 |    true latent      1.50     +1.89   +0.930     10     no
+                   |       metadata      2.26     +2.38   +0.999      6    YES
+                   |        learned      2.53     +1.73   +0.599      6     no
+      5      52.65 |    true latent      1.52     +2.04   +0.955      6    YES
+                   |       metadata      2.29     +2.33   +1.000      7    YES
+                   |        learned      2.39     +1.00   +0.452      8     no
+--------------------------------------------------------------------------------------------------------
+  effect-label effective dim (mean) 51.45
+       true: eff_dim  1.38  dir_set_dim  2.13  pair|cos| 0.529  spec z  +1.87  cos +0.941  pass 1/6
+   metadata: eff_dim  2.27  dir_set_dim  2.51  pair|cos| 0.447  spec z  +2.22  cos +1.000  pass 5/6
+    learned: eff_dim  1.92  dir_set_dim  2.41  pair|cos| 0.425  spec z  +1.05  cos +0.471  pass 0/6
+
+  VERDICT: REPRESENTATION GAP: metadata-space directions are specific but latent ones are not - the loss is in the encoding step
+  report: runs/E0_ceiling2/diagnose_ceiling.json
+========================================================================================================
+
+wandb: uploading artifact run-owtfphby-ceilings; uploading media/table/ceilings_0_5c89a6f409a878e9e70f.table.json; updating run metadata
+wandb: uploading artifact run-owtfphby-ceilings; uploading output.log; uploading wandb-summary.json
+wandb: uploading artifact run-owtfphby-ceilings
+wandb: uploading history steps 0-0, summary, console lines 29-61
+wandb: 
+wandb: Run summary:
+wandb:       analysis/effect_label_eff_dim_mean 51.45434
+wandb:                analysis/learned_cos_mean 0.47132
+wandb:  analysis/learned_direction_set_dim_mean 2.41242
+wandb:            analysis/learned_eff_dim_mean 1.92355
+wandb:                       analysis/learned_n 6
+wandb:                  analysis/learned_n_pass 0
+wandb:       analysis/learned_pairwise_cos_mean 0.42486
+wandb:      analysis/learned_specificity_z_mean 1.05147
+wandb:               analysis/metadata_cos_mean 0.99971
+wandb: analysis/metadata_direction_set_dim_mean 2.50975
+wandb:                                      +14 ...
+wandb: 
+wandb: 🚀 View run E0ceiling2-ceiling at: https://wandb.ai/hust_edu_vn/ldva/runs/owtfphby
+wandb: ⭐️ View project at: https://wandb.ai/hust_edu_vn/ldva
+wandb: Synced 5 W&B file(s), 1 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261004_225311-owtfphby/logs

@@ -199,26 +199,68 @@ class SyntheticWorld:
 
     # ---- canonical Stage 0 setups --------------------------------------
     def default_initial_regions(self) -> list[Region]:
-        """An intentionally incomplete initial distribution.
+        """An intentionally incomplete initial distribution - of limited
+        *extent*, but **full rank**.
 
-        Two tight modes in one corner of metadata space. The evaluation
-        distribution (below) is uniform over the whole box, so the only way to
-        improve the policy is to *expand support outward* - which is the
-        behaviour LDVA is supposed to produce, and which pure resampling of the
-        existing data cannot.
+        D_0 has to leave somewhere to expand into: the evaluation distribution
+        is uniform over the whole box, so coverage must be partial or the
+        experiment is vacuous. The previous version achieved that with two
+        tight modes in one corner, and that turned out to be degenerate in a
+        way that silently capped criterion 6.
+
+        Measured: two tight modes put the metadata of D_0 on a manifold of
+        1.16 effective dimensions out of 3. Local PCA inside such a support
+        yields candidate directions spanning only ~2.5 effective dimensions
+        with a mean pairwise |cos| of ~0.5, so many candidates are near
+        duplicates of each other. Direction *specificity* - whether collection
+        moved the latents along the direction that was asked for rather than
+        one that was not - then cannot exceed about 1.9 standard deviations
+        even when execution is perfect: in raw metadata space the realized
+        cosine is 1.000 and the z-score is still only 1.79-1.91 across seeds.
+        The ceiling came from the geometry of D_0, not from the model, the
+        effect labels (effective dimensionality 38-60) or the metadata mapper.
+
+        So the modes are now offset along *different* axes and given anisotropic
+        widths, which keeps the support inside a corner of the box while
+        spanning all metadata dimensions. Extent stays incomplete; rank does
+        not collapse.
         """
         lo, hi = self.metadata_spec.low, self.metadata_spec.high
-        mid = (lo + hi) / 2
-        span = (hi - lo) / 2
-        c1 = mid - 0.55 * span
-        c2 = mid.copy()
-        c2[0] = mid[0] - 0.5 * span[0]
-        c2[1] = mid[1] + 0.45 * span[1]
-        s = 0.12 * span
-        return [
-            Region("mode_a", c1, s, weight=0.6, cost=1.0),
-            Region("mode_b", c2, s, weight=0.4, cost=1.0),
-        ]
+        d = len(self.metadata_spec)
+        span = hi - lo
+
+        # The support is confined to a CORNER SUB-BOX covering `frac` of each
+        # axis, so coverage stays genuinely incomplete: the evaluation
+        # distribution is uniform over the whole box and most of it is
+        # unreachable without expanding support. Within that sub-box the modes
+        # are offset along *different* axes with anisotropic widths, so the
+        # support has full rank.
+        #
+        # Both properties are needed and they pull against each other. Two
+        # tight modes in one corner gave incomplete extent but a metadata
+        # manifold of 1.16 effective dimensions out of 3, and that alone caps
+        # direction specificity at ~1.9 standard deviations even when
+        # execution is perfect (realized cosine 1.000 in raw metadata space).
+        # Spreading the modes over the whole box fixes the rank but covers 43%
+        # of the box volume with a near-central centroid, which leaves
+        # acquisition nothing to expand into and makes the experiment vacuous.
+        frac = 0.45
+        base = lo + 0.02 * span          # just inside the low corner
+        sub = frac * span                # extent of the sub-box
+        regions: list[Region] = []
+        n_modes = max(min(d, 3), 2)
+        for k in range(n_modes):
+            c = base + 0.5 * sub         # centre of the sub-box
+            ax = k % d
+            c[ax] = base[ax] + 0.18 * sub[ax]
+            c[(ax + 1) % d] = base[(ax + 1) % d] + 0.82 * sub[(ax + 1) % d]
+            w = 0.10 * sub
+            w[ax] = 0.20 * sub[ax]
+            regions.append(
+                Region(f"mode_{chr(ord('a') + k)}", c, w,
+                       weight=1.0 / n_modes, cost=1.0)
+            )
+        return regions
 
     def evaluation_metadata(self, n: int, rng: np.random.Generator) -> np.ndarray:
         """Fixed evaluation distribution, declared *before* acquisition.

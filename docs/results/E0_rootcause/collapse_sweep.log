@@ -1,0 +1,97 @@
+[collapse] 4 seeds | metric weights [0.0, 0.1, 1.0, 5.0] | latent dims [8, 32] | 2 replicates
+wandb: Currently logged in as: pavt1024 (hust_edu_vn) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: Tracking run with wandb version 0.23.0
+wandb: Run data is saved locally in /home/pavt1024/vinuni/robotics/ldva/wandb/run-20261004_210352-rg40ncl4
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run E0collapse-latent-collapse
+wandb: ⭐️ View project at https://wandb.ai/hust_edu_vn/ldva
+wandb: 🚀 View run at https://wandb.ai/hust_edu_vn/ldva/runs/rg40ncl4
+[collapse]   seed 0
+[collapse]     metric_w=0             eff_dim= 1.57+/-0.04 z=+1.19+/-0.07 cos=+0.722 fit=+0.686 n_dir=14
+[collapse]     metric_w=0.1           eff_dim= 2.04+/-0.02 z=+0.86+/-0.48 cos=+0.482 fit=+0.692 n_dir=14
+[collapse]     metric_w=1             eff_dim= 2.42+/-0.13 z=+0.92+/-0.03 cos=+0.485 fit=+0.678 n_dir=12
+[collapse]     metric_w=5             eff_dim= 2.53+/-0.06 z=+0.77+/-0.12 cos=+0.393 fit=+0.625 n_dir=12
+[collapse]     latent_dim=8           eff_dim= 1.81+/-0.05 z=+0.95+/-0.24 cos=+0.589 fit=+0.731 n_dir=14
+[collapse]   seed 1
+[collapse]     metric_w=0             eff_dim= 1.88+/-0.14 z=+0.09+/-0.07 cos=+0.084 fit=+0.497 n_dir=14
+[collapse]     metric_w=0.1           eff_dim= 1.74+/-0.09 z=+0.70+/-0.16 cos=+0.399 fit=+0.588 n_dir=14
+[collapse]     metric_w=1             eff_dim= 1.75+/-0.11 z=+0.09+/-0.08 cos=+0.058 fit=+0.545 n_dir=14
+[collapse]     metric_w=5             eff_dim= 1.75+/-0.03 z=+0.65+/-0.18 cos=+0.383 fit=+0.442 n_dir=15
+[collapse]     latent_dim=8           eff_dim= 1.79+/-0.04 z=+0.72+/-0.11 cos=+0.428 fit=+0.518 n_dir=13
+[collapse]   seed 2
+[collapse]     metric_w=0             eff_dim= 1.97+/-0.02 z=+0.76+/-0.25 cos=+0.459 fit=+0.806 n_dir=12
+[collapse]     metric_w=0.1           eff_dim= 2.18+/-0.01 z=+0.57+/-0.01 cos=+0.321 fit=+0.812 n_dir=12
+[collapse]     metric_w=1             eff_dim= 1.58+/-0.05 z=+0.54+/-0.37 cos=+0.101 fit=+0.823 n_dir=4
+[collapse]     metric_w=5             eff_dim= 1.58+/-0.01 z=+0.72+/-0.37 cos=+0.333 fit=+0.840 n_dir=8
+[collapse]     latent_dim=8           eff_dim= 2.02+/-0.02 z=+0.09+/-0.01 cos=+0.079 fit=+0.823 n_dir=12
+[collapse]   seed 3
+[collapse]     metric_w=0             eff_dim= 1.24+/-0.06 z=+1.27+/-0.10 cos=+0.777 fit=+0.623 n_dir=12
+[collapse]     metric_w=0.1           eff_dim= 1.94+/-0.03 z=+1.41+/-0.14 cos=+0.743 fit=+0.631 n_dir=15
+[collapse]     metric_w=1             eff_dim= 1.75+/-0.01 z=+1.05+/-0.01 cos=+0.547 fit=+0.615 n_dir=14
+[collapse]     metric_w=5             eff_dim= 2.05+/-0.09 z=+1.04+/-0.05 cos=+0.569 fit=+0.585 n_dir=14
+[collapse]     latent_dim=8           eff_dim= 1.58+/-0.18 z=+1.37+/-0.04 cos=+0.840 fit=+0.605 n_dir=12
+
+==============================================================================================================
+LATENT COLLAPSE: what widens the space, and does specificity follow?
+==============================================================================================================
+   seed            arm              label   eff_dim    spec z      cos      fit  n_dir
+      0  metric_weight         metric_w=0      1.57     +1.19   +0.722   +0.686     14
+      0  metric_weight       metric_w=0.1      2.04     +0.86   +0.482   +0.692     14
+      0  metric_weight         metric_w=1      2.42     +0.92   +0.485   +0.678     12
+      0  metric_weight         metric_w=5      2.53     +0.77   +0.393   +0.625     12
+      0     latent_dim       latent_dim=8      1.81     +0.95   +0.589   +0.731     14
+      1  metric_weight         metric_w=0      1.88     +0.09   +0.084   +0.497     14
+      1  metric_weight       metric_w=0.1      1.74     +0.70   +0.399   +0.588     14
+      1  metric_weight         metric_w=1      1.75     +0.09   +0.058   +0.545     14
+      1  metric_weight         metric_w=5      1.75     +0.65   +0.383   +0.442     15
+      1     latent_dim       latent_dim=8      1.79     +0.72   +0.428   +0.518     13
+      2  metric_weight         metric_w=0      1.97     +0.76   +0.459   +0.806     12
+      2  metric_weight       metric_w=0.1      2.18     +0.57   +0.321   +0.812     12
+      2  metric_weight         metric_w=1      1.58     +0.54   +0.101   +0.823      4
+      2  metric_weight         metric_w=5      1.58     +0.72   +0.333   +0.840      8
+      2     latent_dim       latent_dim=8      2.02     +0.09   +0.079   +0.823     12
+      3  metric_weight         metric_w=0      1.24     +1.27   +0.777   +0.623     12
+      3  metric_weight       metric_w=0.1      1.94     +1.41   +0.743   +0.631     15
+      3  metric_weight         metric_w=1      1.75     +1.05   +0.547   +0.615     14
+      3  metric_weight         metric_w=5      2.05     +1.04   +0.569   +0.585     14
+      3     latent_dim       latent_dim=8      1.58     +1.37   +0.840   +0.605     12
+--------------------------------------------------------------------------------------------------------------
+  metric weight sweep (mean over seeds)
+    weight   eff_dim    spec z       fit
+         0      1.67     +0.83    +0.653
+       0.1      1.98     +0.89    +0.681
+         1      1.87     +0.65    +0.665
+         5      1.98     +0.80    +0.623
+    rho(weight, eff_dim)      +0.243
+    rho(weight, specificity)  -0.158
+    rho(weight, effect fit)   -0.109
+    rho(eff_dim, specificity) -0.065
+--------------------------------------------------------------------------------------------------------------
+  latent dimension (is the collapse absolute or proportional?)
+    latent_dim=   8 -> eff_dim 1.80, spec z +0.78
+    latent_dim=  32 -> eff_dim 1.98, spec z +0.89
+--------------------------------------------------------------------------------------------------------------
+  best eff_dim seen 2.53, best specificity z +1.41, any cell >= 2sd: False
+
+  VERDICT: metric weight does not widen the space - the collapse is not a metric-loss weighting problem
+  report: runs/E0_collapse/diagnose_latent_collapse.json
+==============================================================================================================
+
+wandb: uploading artifact run-rg40ncl4-cells; uploading media/table/cells_0_5e4bf1d9929603d8bbf0.table.json; updating run metadata
+wandb: uploading artifact run-rg40ncl4-cells; uploading output.log; uploading wandb-summary.json
+wandb: uploading artifact run-rg40ncl4-cells; uploading config.yaml
+wandb: uploading artifact run-rg40ncl4-cells
+wandb: 
+wandb: Run summary:
+wandb:             analysis/any_cell_above_2sd False
+wandb:                    analysis/max_eff_dim 2.52855
+wandb:              analysis/max_specificity_z 1.41385
+wandb:                        analysis/n_cells 20
+wandb: analysis/rho_eff_dim_vs_specificity_all -0.1594
+wandb:                        analysis/verdict metric weight does n...
+wandb: 
+wandb: 🚀 View run E0collapse-latent-collapse at: https://wandb.ai/hust_edu_vn/ldva/runs/rg40ncl4
+wandb: ⭐️ View project at: https://wandb.ai/hust_edu_vn/ldva
+wandb: Synced 5 W&B file(s), 1 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261004_210352-rg40ncl4/logs

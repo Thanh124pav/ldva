@@ -215,6 +215,12 @@ def measure_realized_latent_movement(
             "n_anchors": int(len(deltas)),
             "n_per_anchor": int(n_per_anchor),
             "paired_sampling": bool(paired),
+            # the mean realized displacement itself, so a caller can score
+            # this direction against the OTHER candidate directions. Without
+            # the vector, only the raw cosine is available, and that overstates
+            # control whenever the latent space is collapsed - see
+            # `direction_specificity`.
+            "realized_delta": deltas.mean(0).tolist(),
         }
     )
     return out

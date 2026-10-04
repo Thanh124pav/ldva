@@ -55,6 +55,14 @@ than the model. The rule is fixed in advance and includes all three types;
 
 ## (b) The fit-versus-controllability trade-off is real
 
+> **Largely retracted by [`E0_root_cause.md`](E0_root_cause.md).** Scored
+> against the right null - the other candidate directions rather than the raw
+> cosine - the raw cosine fell resolvably in 4/8 seeds but the above-chance
+> z-score in only 1/8 (mean Δz = −0.24 ± 0.20, not resolvable). Most of what
+> is below was the latent space growing from ~1.1 to ~2.1 effective
+> dimensions, which lowers a cosine for free. The measurements stand; the
+> causal reading does not.
+
 ```bash
 python experiments/synthetic/diagnose_controllability.py \
     --seeds 0..15 --epochs 5,60 --smooth-weights 0.1 --replicates 2
@@ -100,6 +108,10 @@ Two conditions separate them:
    **+0.910** to +0.353.
 
 ### The mechanism is not what the name suggests
+
+> Also superseded: the "latent drift" reading below was built on the trade-off,
+> and the root cause turned out to be D_0's rank-deficient geometry. See
+> `E0_root_cause.md` section 3.
 
 C6 *after* training is similar across all three groups (+0.308 / +0.633 /
 +0.364). What differs is where each seed **started**. So training does not
