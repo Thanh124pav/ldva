@@ -47,6 +47,8 @@ from ldva.analysis import plotting as P  # noqa: E402
 from ldva.analysis.acquisition_calibration import (  # noqa: E402
     CalibrationRecord,
     calibration_report,
+    candidate_allocations,
+    deduplicate,
 )
 from ldva.analysis.latent_geometry import GeometryGate, latent_geometry_report  # noqa: E402
 from ldva.analysis.wandb_logger import make_logger  # noqa: E402
@@ -101,6 +103,20 @@ DEFAULTS = dict(
     hidden=(128, 128),
     epochs=60,
     n_clusters=4,
+    #: MIXED random allocations in the calibration candidate set, on top of the
+    #: one-hot allocations which are always included.
+    #:
+    #: Which allocation type carries the realized signal is **seed-dependent**,
+    #: so this is deliberately NOT tuned. On E0 seed 0 the mixed allocations
+    #: spanned a realized range of only 0.098 and diluted the pooled Spearman
+    #: from +0.522 to +0.177; on seed 1 the same mixed allocations were the
+    #: most informative group of all (+0.402 on their own, against +0.271 for
+    #: planner+one-hot) and are what let that seed pass. Choosing the set per
+    #: seed by whichever gives the highest correlation would be selecting on
+    #: the outcome, which is exactly what invalidates a gate - so all three
+    #: types are included on a fixed rule and `by_source` reports the
+    #: breakdown as a diagnostic.
+    n_random_allocations=14,
     r_max=2,
     delta_scale=0.4,
     budget=8,
@@ -115,6 +131,7 @@ QUICK = dict(
     n_samples=120, n_eval=200, policy_steps=90, policy_snapshot_every=30,
     policy_restarts=2, contexts_per_sample=12, epochs=25, latent_dim=16,
     hidden=(64, 64), budget=6, n_mc=8, beam_widths=(1, 5, 10),
+    n_random_allocations=8,
 )
 
 
@@ -378,8 +395,27 @@ def main() -> dict:
         OracleConfig(lr=cfg["label_lr"], n_steps=cfg["label_steps"], n_repeats=3,
                      seed=seeds["acquisition"]),
     )
-    candidates = {k: v.best_allocation for k, v in solvers.items()}
-    candidates.update({k: v.best_allocation for k, v in baselines.items()})
+    # The candidate set is where this criterion used to go wrong. Scoring only
+    # the allocations the solvers *chose* measures the correlation inside a
+    # narrow near-optimal band and duplicates heavily: a 24-cell sweep
+    # (docs/E0_diagnosis.md) found one seed where 9 of 15 candidates shared one
+    # allocation, so nine records carried one predicted value against realized
+    # gains from -26.6 to +2.6 - a spread 15x the entire range of predicted
+    # values, which then set the sign of Spearman. De-duplicating and adding
+    # allocations that span the simplex turned that seed from -0.569 to +0.388
+    # at the SAME step length, so this is a measurement fix, not a tuning one.
+    solver_allocs = {k: v.best_allocation for k, v in solvers.items()}
+    solver_allocs.update({k: v.best_allocation for k, v in baselines.items()})
+    chosen_keys = {tuple(int(x) for x in a) for a in solver_allocs.values()}
+    candidates = dict(solver_allocs)
+    for i, a in enumerate(candidate_allocations(
+            len(directions), cfg["budget"], cfg["n_random_allocations"],
+            rng_acq, exclude=chosen_keys)):
+        # one-hot allocations come first, so the label says which is which
+        concentrated = int(np.count_nonzero(a)) == 1
+        candidates[("concentrated_" if concentrated else "random_") + str(i)] = (
+            np.asarray(a, dtype=np.int64))
+
     calib = []
     for name, alloc in candidates.items():
         plans = mapper.plan_allocation(directions, alloc, store.metadata, rng=rng_acq)
@@ -387,14 +423,39 @@ def main() -> dict:
             plans, ref_ckpt.flat_params, ref_ckpt.features, rng_acq)
         calib.append(CalibrationRecord(
             allocation=alloc, predicted=objective.value(alloc),
-            realized=realized["realized_gain"], cost=budget.cost_of(alloc), label=name))
+            realized=realized["realized_gain"], cost=budget.cost_of(alloc), label=name,
+            extra={"source": ("concentrated" if name.startswith("concentrated_")
+                              else "random" if name.startswith("random_")
+                              else "planner")}))
+    n_before = len(calib)
+    calib = deduplicate(calib)
+
+    # the planner-only subset reproduces the OLD measurement, kept so the
+    # change to this criterion is auditable rather than asserted
+    planner_only = [c for c in calib if c.extra.get("source") == "planner"]
+    by_source = {}
+    for src in ("planner", "concentrated", "random"):
+        sub = [c for c in calib if c.extra.get("source") == src]
+        if len(sub) >= 3:
+            by_source[src] = calibration_report(sub, top_k=3)
     report["calibration"] = {
         "report": calibration_report(calib, top_k=3),
+        "planner_only_report": calibration_report(planner_only, top_k=3),
+        "by_source": by_source,
+        "n_candidates_before_dedup": n_before,
+        "n_distinct": len(calib),
+        "n_random_added": cfg["n_random_allocations"],
+        "measurement": "de-duplicated allocations, planner picks plus random "
+                       "allocations spanning the simplex (docs/E0_diagnosis.md)",
         "records": [{"label": c.label, "allocation": c.allocation.tolist(),
-                     "predicted": c.predicted, "realized": c.realized} for c in calib],
+                     "predicted": c.predicted, "realized": c.realized,
+                     "source": c.extra.get("source")} for c in calib],
     }
     r = report["calibration"]["report"]
-    say(f"calibration: spearman(predicted, realized)={r['spearman']:+.3f} over {len(calib)} compositions")
+    po = report["calibration"]["planner_only_report"].get("spearman", float("nan"))
+    say(f"calibration: spearman(predicted, realized)={r['spearman']:+.3f} over "
+        f"{len(calib)} distinct compositions "
+        f"(planner-only subset, the old measurement: {po:+.3f})")
 
     # ---- 11. success criteria (PLAN.md 14) ------------------------------
     crit = _success_criteria(report, solvers, calib, cfg)

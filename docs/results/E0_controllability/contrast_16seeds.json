@@ -1,0 +1,3388 @@
+{
+  "analysis": {
+    "fit_sweep": {
+      "n_seeds": 0,
+      "n_seeds_negative": 0,
+      "n_seeds_positive": 0,
+      "per_seed": {},
+      "rho_fit_vs_c6_mean": NaN
+    },
+    "smooth_sweep": {
+      "n_seeds": 0,
+      "n_seeds_negative": 0,
+      "n_seeds_positive": 0,
+      "per_seed": {},
+      "rho_fit_vs_c6_mean": NaN
+    },
+    "verdict": "insufficient data"
+  },
+  "args": {
+    "delta_scale": 0.4,
+    "epochs": "5,60",
+    "experiment": "E0ctrl3",
+    "out": "runs/E0_ctrl3",
+    "quick": false,
+    "replicates": 2,
+    "seeds": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+    "smooth_weights": "0.1",
+    "wandb": true,
+    "wandb_project": "ldva"
+  },
+  "config": {
+    "budget": 8,
+    "context_batch_size": 8,
+    "contexts_per_sample": 20,
+    "delta_scale": 0.4,
+    "epochs": 50,
+    "hidden": [
+      128,
+      128
+    ],
+    "label_lr": 0.3,
+    "label_steps": 4,
+    "latent_dim": 32,
+    "latent_dims": [
+      8,
+      16,
+      32,
+      64,
+      128
+    ],
+    "n_clusters": 4,
+    "n_eval": 300,
+    "n_mc": 16,
+    "n_samples": 250,
+    "policy_restarts": 3,
+    "policy_snapshot_every": 30,
+    "policy_steps": 150,
+    "r_max": 2
+  },
+  "contrast": {
+    "conditions": [
+      {
+        "feature": "fit_low",
+        "mean_positive": 0.4291529173269608,
+        "mean_tradeoff": 0.4390870621594192,
+        "mean_unresolved": 0.3245095432291338,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      },
+      {
+        "feature": "fit_high",
+        "mean_positive": 0.5820154838192516,
+        "mean_tradeoff": 0.7350443158025082,
+        "mean_unresolved": 0.5136296784628575,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      },
+      {
+        "feature": "fit_gain",
+        "mean_positive": 0.1528625664922908,
+        "mean_tradeoff": 0.29595725364308895,
+        "mean_unresolved": 0.18912013523372367,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      },
+      {
+        "feature": "c6_low",
+        "mean_positive": 0.4262853721319062,
+        "mean_tradeoff": 0.7136347161664831,
+        "mean_unresolved": 0.5185181686837435,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      },
+      {
+        "feature": "c6_high",
+        "mean_positive": 0.6332511790762736,
+        "mean_tradeoff": 0.30767112359364124,
+        "mean_unresolved": 0.38279501414897366,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      },
+      {
+        "feature": "gain_r2_high",
+        "mean_positive": 0.024876791311203184,
+        "mean_tradeoff": 0.6301123116097325,
+        "mean_unresolved": -0.5850187511947192,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      },
+      {
+        "feature": "overshoot_high",
+        "mean_positive": 1.6474700483751497,
+        "mean_tradeoff": 1.9368128958451816,
+        "mean_unresolved": 1.9675993063684667,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      },
+      {
+        "feature": "n_directions_high",
+        "mean_positive": 13.0,
+        "mean_tradeoff": 11.714285714285714,
+        "mean_unresolved": 11.5,
+        "n_positive": 1,
+        "n_tradeoff": 7,
+        "n_unresolved": 8
+      }
+    ],
+    "counts": {
+      "positive": 1,
+      "tradeoff": 7,
+      "unresolved": 8
+    },
+    "delta_c6_mean": -0.23253528608398022,
+    "delta_c6_sem": 0.057395533834797445,
+    "n_delta_negative": 13,
+    "n_delta_positive": 3,
+    "n_seeds": 16,
+    "per_seed": [
+      {
+        "c6_high": 0.23565187661257148,
+        "c6_low": 0.7004315016517468,
+        "delta_c6": -0.46477962503917536,
+        "fit_gain": 0.4090286883836408,
+        "fit_high": 0.7410305877872181,
+        "fit_low": 0.33200189940357727,
+        "gain_r2_high": 0.46291966793190187,
+        "n_directions_high": 16,
+        "overshoot_high": 1.43228876687481,
+        "resolved": true,
+        "se": 0.1974279259257829,
+        "seed": 0,
+        "sign": "tradeoff"
+      },
+      {
+        "c6_high": 0.6332511790762736,
+        "c6_low": 0.4262853721319062,
+        "delta_c6": 0.2069658069443674,
+        "fit_gain": 0.1528625664922908,
+        "fit_high": 0.5820154838192516,
+        "fit_low": 0.4291529173269608,
+        "gain_r2_high": 0.024876791311203184,
+        "n_directions_high": 13,
+        "overshoot_high": 1.6474700483751497,
+        "resolved": true,
+        "se": 0.03461088058754543,
+        "seed": 1,
+        "sign": "positive"
+      },
+      {
+        "c6_high": 0.15619050079288357,
+        "c6_low": 0.4026623975197232,
+        "delta_c6": -0.24647189672683964,
+        "fit_gain": 0.18901003591883492,
+        "fit_high": 0.815484277211477,
+        "fit_low": 0.6264742412926421,
+        "gain_r2_high": 0.8620285901149711,
+        "n_directions_high": 10,
+        "overshoot_high": 2.500285269337364,
+        "resolved": false,
+        "se": 0.1638522819999925,
+        "seed": 2,
+        "sign": "unresolved"
+      },
+      {
+        "c6_high": 0.6531879097761704,
+        "c6_low": 0.8146072101799893,
+        "delta_c6": -0.1614193004038189,
+        "fit_gain": 0.31691211815632225,
+        "fit_high": 0.6766146810963451,
+        "fit_low": 0.3597025629400229,
+        "gain_r2_high": 0.2998464520913389,
+        "n_directions_high": 14,
+        "overshoot_high": 1.412368897549301,
+        "resolved": true,
+        "se": 0.015259715291460679,
+        "seed": 3,
+        "sign": "tradeoff"
+      },
+      {
+        "c6_high": 0.10054220940256002,
+        "c6_low": 0.5806250109031831,
+        "delta_c6": -0.48008280150062305,
+        "fit_gain": 0.1697015956832022,
+        "fit_high": 0.8048931425304082,
+        "fit_low": 0.635191546847206,
+        "gain_r2_high": 0.8695564928662795,
+        "n_directions_high": 12,
+        "overshoot_high": 2.6162873054945597,
+        "resolved": true,
+        "se": 0.02711878377016417,
+        "seed": 4,
+        "sign": "tradeoff"
+      },
+      {
+        "c6_high": 0.3533364785242358,
+        "c6_low": 0.9101199985436829,
+        "delta_c6": -0.5567835200194471,
+        "fit_gain": 0.2505147383881303,
+        "fit_high": 0.7686535950167516,
+        "fit_low": 0.5181388566286212,
+        "gain_r2_high": 0.7720734256331614,
+        "n_directions_high": 10,
+        "overshoot_high": 1.5257304222337713,
+        "resolved": true,
+        "se": 0.1355261805728482,
+        "seed": 5,
+        "sign": "tradeoff"
+      },
+      {
+        "c6_high": -0.02204682425151605,
+        "c6_low": 0.18008672587183921,
+        "delta_c6": -0.20213355012335527,
+        "fit_gain": 0.06512157973568766,
+        "fit_high": 0.7083053018014172,
+        "fit_low": 0.6431837220657295,
+        "gain_r2_high": 0.4908158570999926,
+        "n_directions_high": 10,
+        "overshoot_high": 3.42437200358693,
+        "resolved": false,
+        "se": 0.17073298329809866,
+        "seed": 6,
+        "sign": "unresolved"
+      },
+      {
+        "c6_high": 0.45188788442262434,
+        "c6_low": 0.8256700706158155,
+        "delta_c6": -0.3737821861931912,
+        "fit_gain": 0.2551460583330306,
+        "fit_high": 0.18503307721373913,
+        "fit_low": -0.07011298111929148,
+        "gain_r2_high": -0.025397705674915894,
+        "n_directions_high": 9,
+        "overshoot_high": 1.8142268544657774,
+        "resolved": false,
+        "se": 0.2040832373124621,
+        "seed": 7,
+        "sign": "unresolved"
+      },
+      {
+        "c6_high": 0.6422968174366815,
+        "c6_low": 0.5857083411629935,
+        "delta_c6": 0.056588476273688015,
+        "fit_gain": 0.139369315594556,
+        "fit_high": 0.7760109817785408,
+        "fit_low": 0.6366416661839848,
+        "gain_r2_high": 0.7346171237640279,
+        "n_directions_high": 15,
+        "overshoot_high": 1.8533403919680276,
+        "resolved": false,
+        "se": 0.04335917890404577,
+        "seed": 8,
+        "sign": "unresolved"
+      },
+      {
+        "c6_high": 0.46780899717674546,
+        "c6_low": 0.4851005159257393,
+        "delta_c6": -0.017291518748993817,
+        "fit_gain": 0.0745016364862097,
+        "fit_high": 0.20024195764029618,
+        "fit_low": 0.12574032115408648,
+        "gain_r2_high": 0.0714601850348382,
+        "n_directions_high": 11,
+        "overshoot_high": 1.0814232042443965,
+        "resolved": false,
+        "se": 0.06597237274508637,
+        "seed": 9,
+        "sign": "unresolved"
+      },
+      {
+        "c6_high": 0.25756847358178253,
+        "c6_low": 0.689618612723198,
+        "delta_c6": -0.4320501391414155,
+        "fit_gain": 0.303111083305023,
+        "fit_high": 0.6949606504111954,
+        "fit_low": 0.39184956710617236,
+        "gain_r2_high": 0.6082508481422442,
+        "n_directions_high": 14,
+        "overshoot_high": 1.8301644887863355,
+        "resolved": true,
+        "se": 0.18773973212236983,
+        "seed": 10,
+        "sign": "tradeoff"
+      },
+      {
+        "c6_high": 0.1159110050872828,
+        "c6_low": 0.6347383097578063,
+        "delta_c6": -0.5188273046705235,
+        "fit_gain": 0.5078010917536362,
+        "fit_high": 0.5667969514037176,
+        "fit_low": 0.05899585965008132,
+        "gain_r2_high": 0.6217496421866338,
+        "n_directions_high": 8,
+        "overshoot_high": 2.318607397143847,
+        "resolved": true,
+        "se": 0.14761029611441573,
+        "seed": 11,
+        "sign": "tradeoff"
+      },
+      {
+        "c6_high": 0.35426734635405677,
+        "c6_low": 0.6391949450605712,
+        "delta_c6": -0.2849275987065144,
+        "fit_gain": 0.4408483620977601,
+        "fit_high": 0.5149369028862171,
+        "fit_low": 0.07408854078845693,
+        "gain_r2_high": -0.00885146542650872,
+        "n_directions_high": 14,
+        "overshoot_high": 1.8945480344696954,
+        "resolved": false,
+        "se": 0.2810088269479075,
+        "seed": 12,
+        "sign": "unresolved"
+      },
+      {
+        "c6_high": 0.4374999121708857,
+        "c6_low": 0.6653023694057751,
+        "delta_c6": -0.22780245723488945,
+        "fit_gain": 0.11463145983166778,
+        "fit_high": 0.8923606023719212,
+        "fit_low": 0.7777291425402534,
+        "gain_r2_high": 0.7763896524165681,
+        "n_directions_high": 8,
+        "overshoot_high": 2.422242992833647,
+        "resolved": true,
+        "se": 0.024963356077785777,
+        "seed": 13,
+        "sign": "tradeoff"
+      },
+      {
+        "c6_high": 0.4947187514858857,
+        "c6_low": 0.3467807226501946,
+        "delta_c6": 0.14793802883569107,
+        "fit_gain": 0.2654240109466044,
+        "fit_high": 0.7373303485068048,
+        "fit_low": 0.4719063375602004,
+        "gain_r2_high": 0.7426786212402181,
+        "n_directions_high": 8,
+        "overshoot_high": 1.7248007293813439,
+        "resolved": false,
+        "se": 0.10635583543492332,
+        "seed": 14,
+        "sign": "unresolved"
+      },
+      {
+        "c6_high": 0.5172366397744279,
+        "c6_low": 0.6829416306630711,
+        "delta_c6": -0.1657049908886432,
+        "fit_gain": 0.08354008275710588,
+        "fit_high": 0.17169458066436744,
+        "fit_low": 0.08815449790726156,
+        "gain_r2_high": -7.547501215710377,
+        "n_directions_high": 15,
+        "overshoot_high": 1.4477979634941998,
+        "resolved": false,
+        "se": 0.09226898418021241,
+        "seed": 15,
+        "sign": "unresolved"
+      }
+    ],
+    "verdict": "both directions occur: trade-off in 7, positive in 1 - see the conditions table for what separates them"
+  },
+  "provenance": {
+    "command": "experiments/synthetic/diagnose_controllability.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 --epochs 5,60 --smooth-weights 0.1 --replicates 2 --wandb --experiment E0ctrl3 --out runs/E0_ctrl3",
+    "conda_env": "deeplearning",
+    "cuda_available": true,
+    "experiment": "E0ctrl3",
+    "git_sha": "62cc4ef6c3c11fd11780a9734acd263353435345-dirty",
+    "numpy": "2.2.6",
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "simulators": {
+      "dm_control": "absent",
+      "gymnasium": "1.3.0",
+      "metaworld": "absent",
+      "mujoco": "3.3.0"
+    },
+    "torch": "2.11.0+cu128"
+  },
+  "results": {
+    "fit_sweep": [
+      {
+        "c6_mean": 0.7004315016517468,
+        "c6_std": 0.14039214786263915,
+        "control": {
+          "actionable_survival": 0.9333333333333333,
+          "direction_cosine_mean": 0.840823649514386,
+          "direction_cosine_median": 0.8616243687040729,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.2220718337165584,
+          "n_directions": 14,
+          "overshoot": 1.7409206999751938,
+          "passed": true,
+          "planned_step_mean": 0.10065331191082559,
+          "reachability_cosine_mean": 0.9917731110082256,
+          "realized_displacement_mean": 0.175229434226616
+        },
+        "effect_spearman": 0.33200189940357727,
+        "effect_spearman_std": 0.02230963047006454,
+        "epochs": 5,
+        "gain_within_r2": 0.023451864762713992,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.5600393537891077,
+              "direction_cosine_median": 0.8298860707818743,
+              "frac_positive": 0.7692307692307693,
+              "jacobian_r2_heldout_mean": 0.24038751200611982,
+              "n_directions": 13,
+              "overshoot": 2.7716821734605994,
+              "passed": true,
+              "planned_step_mean": 0.07618768807712957,
+              "reachability_cosine_mean": 0.9817636210362048,
+              "realized_displacement_mean": 0.21116805688055668
+            },
+            "effect_spearman": 0.35431152987364184,
+            "gain_within_r2": -0.03682584111486564,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.9333333333333333,
+              "direction_cosine_mean": 0.840823649514386,
+              "direction_cosine_median": 0.8616243687040729,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.2220718337165584,
+              "n_directions": 14,
+              "overshoot": 1.7409206999751938,
+              "passed": true,
+              "planned_step_mean": 0.10065331191082559,
+              "reachability_cosine_mean": 0.9917731110082256,
+              "realized_displacement_mean": 0.175229434226616
+            },
+            "effect_spearman": 0.30969226893351276,
+            "gain_within_r2": 0.08372957064029363,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 0,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.23565187661257148,
+        "c6_std": 0.2413412867480981,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.4769931633606696,
+          "direction_cosine_median": 0.6948097690468276,
+          "frac_positive": 0.875,
+          "jacobian_r2_heldout_mean": 0.14725200975332783,
+          "n_directions": 16,
+          "overshoot": 1.43228876687481,
+          "passed": true,
+          "planned_step_mean": 0.1358086546664518,
+          "reachability_cosine_mean": 0.9786224657325753,
+          "realized_displacement_mean": 0.1945172105231392
+        },
+        "effect_spearman": 0.7410305877872181,
+        "effect_spearman_std": 0.01776671418954029,
+        "epochs": 60,
+        "gain_within_r2": 0.46291966793190187,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.9333333333333333,
+              "direction_cosine_mean": -0.005689410135526628,
+              "direction_cosine_median": 0.13791344081783236,
+              "frac_positive": 0.5714285714285714,
+              "jacobian_r2_heldout_mean": 0.08640946825784189,
+              "n_directions": 14,
+              "overshoot": 1.5969252983295454,
+              "passed": false,
+              "planned_step_mean": 0.1362326071771086,
+              "reachability_cosine_mean": 0.9789304478520278,
+              "realized_displacement_mean": 0.21755329685851593
+            },
+            "effect_spearman": 0.7587973019767584,
+            "gain_within_r2": 0.2680327389527468,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.4769931633606696,
+              "direction_cosine_median": 0.6948097690468276,
+              "frac_positive": 0.875,
+              "jacobian_r2_heldout_mean": 0.14725200975332783,
+              "n_directions": 16,
+              "overshoot": 1.43228876687481,
+              "passed": true,
+              "planned_step_mean": 0.1358086546664518,
+              "reachability_cosine_mean": 0.9786224657325753,
+              "realized_displacement_mean": 0.1945172105231392
+            },
+            "effect_spearman": 0.7232638735976779,
+            "gain_within_r2": 0.6578065969110569,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 0,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.4262853721319062,
+        "c6_std": 0.0014428324424081984,
+        "control": {
+          "actionable_survival": 0.8461538461538461,
+          "direction_cosine_mean": 0.42772820457431443,
+          "direction_cosine_median": 0.6207383295713622,
+          "frac_positive": 0.8181818181818182,
+          "jacobian_r2_heldout_mean": 0.3369363088842913,
+          "n_directions": 11,
+          "overshoot": 3.691580335337289,
+          "passed": true,
+          "planned_step_mean": 0.14664678031698958,
+          "reachability_cosine_mean": 0.994817486605653,
+          "realized_displacement_mean": 0.5413583704587261
+        },
+        "effect_spearman": 0.4291529173269608,
+        "effect_spearman_std": 0.03839430430166749,
+        "epochs": 5,
+        "gain_within_r2": 0.08548941670915378,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.42484253968949803,
+              "direction_cosine_median": 0.4273582003919307,
+              "frac_positive": 0.8571428571428571,
+              "jacobian_r2_heldout_mean": 0.3199604617016508,
+              "n_directions": 14,
+              "overshoot": 3.6874334449755786,
+              "passed": true,
+              "planned_step_mean": 0.16436230229475451,
+              "reachability_cosine_mean": 0.9824719394473391,
+              "realized_displacement_mean": 0.6060750505748641
+            },
+            "effect_spearman": 0.3907586130252933,
+            "gain_within_r2": 0.09430978718279603,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.8461538461538461,
+              "direction_cosine_mean": 0.42772820457431443,
+              "direction_cosine_median": 0.6207383295713622,
+              "frac_positive": 0.8181818181818182,
+              "jacobian_r2_heldout_mean": 0.3369363088842913,
+              "n_directions": 11,
+              "overshoot": 3.691580335337289,
+              "passed": true,
+              "planned_step_mean": 0.14664678031698958,
+              "reachability_cosine_mean": 0.994817486605653,
+              "realized_displacement_mean": 0.5413583704587261
+            },
+            "effect_spearman": 0.4675472216286283,
+            "gain_within_r2": 0.07666904623551152,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 1,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.6332511790762736,
+        "c6_std": 0.04892590668177538,
+        "control": {
+          "actionable_survival": 0.8666666666666667,
+          "direction_cosine_mean": 0.682177085758049,
+          "direction_cosine_median": 0.7577870530141212,
+          "frac_positive": 0.9230769230769231,
+          "jacobian_r2_heldout_mean": 0.1693525995768677,
+          "n_directions": 13,
+          "overshoot": 1.6474700483751497,
+          "passed": true,
+          "planned_step_mean": 0.168528205730062,
+          "reachability_cosine_mean": 0.989009371894847,
+          "realized_displacement_mean": 0.2776451712466824
+        },
+        "effect_spearman": 0.5820154838192516,
+        "effect_spearman_std": 0.03903623378299892,
+        "epochs": 60,
+        "gain_within_r2": 0.024876791311203184,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.5843252723944983,
+              "direction_cosine_median": 0.4963040780123877,
+              "frac_positive": 0.9333333333333333,
+              "jacobian_r2_heldout_mean": 0.21741338043695316,
+              "n_directions": 15,
+              "overshoot": 2.512825538734408,
+              "passed": true,
+              "planned_step_mean": 0.21140609804359414,
+              "reachability_cosine_mean": 0.9914698142747925,
+              "realized_displacement_mean": 0.5312266422081335
+            },
+            "effect_spearman": 0.5429792500362527,
+            "gain_within_r2": -0.10015809694530575,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.8666666666666667,
+              "direction_cosine_mean": 0.682177085758049,
+              "direction_cosine_median": 0.7577870530141212,
+              "frac_positive": 0.9230769230769231,
+              "jacobian_r2_heldout_mean": 0.1693525995768677,
+              "n_directions": 13,
+              "overshoot": 1.6474700483751497,
+              "passed": true,
+              "planned_step_mean": 0.168528205730062,
+              "reachability_cosine_mean": 0.989009371894847,
+              "realized_displacement_mean": 0.2776451712466824
+            },
+            "effect_spearman": 0.6210517176022505,
+            "gain_within_r2": 0.14991167956771212,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 1,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.4026623975197232,
+        "c6_std": 0.16723265024516087,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.5698950477648841,
+          "direction_cosine_median": 0.9539346194255471,
+          "frac_positive": 0.8,
+          "jacobian_r2_heldout_mean": 0.4286311453058609,
+          "n_directions": 10,
+          "overshoot": 3.3727310843659866,
+          "passed": true,
+          "planned_step_mean": 0.12558750402943192,
+          "reachability_cosine_mean": 0.9960334145598665,
+          "realized_displacement_mean": 0.42357287864800364
+        },
+        "effect_spearman": 0.6264742412926421,
+        "effect_spearman_std": 0.009918959800884863,
+        "epochs": 5,
+        "gain_within_r2": 0.6295394245946926,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7142857142857143,
+              "direction_cosine_mean": 0.23542974727456234,
+              "direction_cosine_median": 0.5225480131867568,
+              "frac_positive": 0.6,
+              "jacobian_r2_heldout_mean": 0.5643389501112377,
+              "n_directions": 10,
+              "overshoot": 1.9691166989797169,
+              "passed": false,
+              "planned_step_mean": 0.19037178205403738,
+              "reachability_cosine_mean": 0.9992105953585085,
+              "realized_displacement_mean": 0.37486425505713217
+            },
+            "effect_spearman": 0.6363932010935269,
+            "gain_within_r2": 0.6763388633336,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.5698950477648841,
+              "direction_cosine_median": 0.9539346194255471,
+              "frac_positive": 0.8,
+              "jacobian_r2_heldout_mean": 0.4286311453058609,
+              "n_directions": 10,
+              "overshoot": 3.3727310843659866,
+              "passed": true,
+              "planned_step_mean": 0.12558750402943192,
+              "reachability_cosine_mean": 0.9960334145598665,
+              "realized_displacement_mean": 0.42357287864800364
+            },
+            "effect_spearman": 0.6165552814917572,
+            "gain_within_r2": 0.582739985855785,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 2,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.15619050079288357,
+        "c6_std": 0.1604006899149434,
+        "control": {
+          "actionable_survival": 0.7692307692307693,
+          "direction_cosine_mean": 0.316591190707827,
+          "direction_cosine_median": 0.7093530974120982,
+          "frac_positive": 0.6,
+          "jacobian_r2_heldout_mean": 0.34235298044170215,
+          "n_directions": 10,
+          "overshoot": 2.500285269337364,
+          "passed": true,
+          "planned_step_mean": 0.20916736287658882,
+          "reachability_cosine_mean": 0.9845838274027138,
+          "realized_displacement_mean": 0.522978076226478
+        },
+        "effect_spearman": 0.815484277211477,
+        "effect_spearman_std": 0.03988084130482472,
+        "epochs": 60,
+        "gain_within_r2": 0.8620285901149711,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7142857142857143,
+              "direction_cosine_mean": -0.004210189122059849,
+              "direction_cosine_median": 0.12129393216794349,
+              "frac_positive": 0.6,
+              "jacobian_r2_heldout_mean": 0.3375950797994742,
+              "n_directions": 10,
+              "overshoot": 3.0167743373579956,
+              "passed": false,
+              "planned_step_mean": 0.24298680530917513,
+              "reachability_cosine_mean": 0.9806523276319277,
+              "realized_displacement_mean": 0.733036358573323
+            },
+            "effect_spearman": 0.8553651185163017,
+            "gain_within_r2": 0.8980962949667209,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.7692307692307693,
+              "direction_cosine_mean": 0.316591190707827,
+              "direction_cosine_median": 0.7093530974120982,
+              "frac_positive": 0.6,
+              "jacobian_r2_heldout_mean": 0.34235298044170215,
+              "n_directions": 10,
+              "overshoot": 2.500285269337364,
+              "passed": true,
+              "planned_step_mean": 0.20916736287658882,
+              "reachability_cosine_mean": 0.9845838274027138,
+              "realized_displacement_mean": 0.522978076226478
+            },
+            "effect_spearman": 0.7756034359066523,
+            "gain_within_r2": 0.8259608852632212,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 2,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.8146072101799893,
+        "c6_std": 0.021556123218737677,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.7930510869612516,
+          "direction_cosine_median": 0.960624659045368,
+          "frac_positive": 0.9285714285714286,
+          "jacobian_r2_heldout_mean": 0.3666971027027645,
+          "n_directions": 14,
+          "overshoot": 2.5402809134456366,
+          "passed": true,
+          "planned_step_mean": 0.12558630159741438,
+          "reachability_cosine_mean": 0.999721156324277,
+          "realized_displacement_mean": 0.319024484938139
+        },
+        "effect_spearman": 0.3597025629400229,
+        "effect_spearman_std": 0.12480794774886167,
+        "epochs": 5,
+        "gain_within_r2": 0.08290166055820075,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.836163333398727,
+              "direction_cosine_median": 0.9202464150076723,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.4241018196207242,
+              "n_directions": 12,
+              "overshoot": 2.8802551348156222,
+              "passed": true,
+              "planned_step_mean": 0.09145544282231906,
+              "reachability_cosine_mean": 0.9986844925324929,
+              "realized_displacement_mean": 0.263415008795821
+            },
+            "effect_spearman": 0.23489461519116123,
+            "gain_within_r2": 0.1081608155868502,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.7930510869612516,
+              "direction_cosine_median": 0.960624659045368,
+              "frac_positive": 0.9285714285714286,
+              "jacobian_r2_heldout_mean": 0.3666971027027645,
+              "n_directions": 14,
+              "overshoot": 2.5402809134456366,
+              "passed": true,
+              "planned_step_mean": 0.12558630159741438,
+              "reachability_cosine_mean": 0.999721156324277,
+              "realized_displacement_mean": 0.319024484938139
+            },
+            "effect_spearman": 0.48451051068888457,
+            "gain_within_r2": 0.0576425055295513,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 3,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.6531879097761704,
+        "c6_std": 0.0010253649747656302,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.654213274750936,
+          "direction_cosine_median": 0.8526245679521065,
+          "frac_positive": 0.9285714285714286,
+          "jacobian_r2_heldout_mean": 0.3586990225602342,
+          "n_directions": 14,
+          "overshoot": 1.412368897549301,
+          "passed": true,
+          "planned_step_mean": 0.14433888108397083,
+          "reachability_cosine_mean": 0.9954976030477801,
+          "realized_displacement_mean": 0.20385974635006754
+        },
+        "effect_spearman": 0.6766146810963451,
+        "effect_spearman_std": 0.006695226124697251,
+        "epochs": 60,
+        "gain_within_r2": 0.2998464520913389,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.875,
+              "direction_cosine_mean": 0.6521625448014048,
+              "direction_cosine_median": 0.6685925509612249,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.3168603020848724,
+              "n_directions": 14,
+              "overshoot": 1.5865518202675866,
+              "passed": true,
+              "planned_step_mean": 0.14027005424590958,
+              "reachability_cosine_mean": 0.9935889664899855,
+              "realized_displacement_mean": 0.22254570989288094
+            },
+            "effect_spearman": 0.6833099072210425,
+            "gain_within_r2": 0.4049784105279344,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.654213274750936,
+              "direction_cosine_median": 0.8526245679521065,
+              "frac_positive": 0.9285714285714286,
+              "jacobian_r2_heldout_mean": 0.3586990225602342,
+              "n_directions": 14,
+              "overshoot": 1.412368897549301,
+              "passed": true,
+              "planned_step_mean": 0.14433888108397083,
+              "reachability_cosine_mean": 0.9954976030477801,
+              "realized_displacement_mean": 0.20385974635006754
+            },
+            "effect_spearman": 0.669919454971648,
+            "gain_within_r2": 0.19471449365474347,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 3,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.5806250109031831,
+        "c6_std": 0.03830663367380682,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.5423183772293763,
+          "direction_cosine_median": 0.7382506623640358,
+          "frac_positive": 0.9230769230769231,
+          "jacobian_r2_heldout_mean": 0.44396294728294383,
+          "n_directions": 13,
+          "overshoot": 3.0274530362146153,
+          "passed": true,
+          "planned_step_mean": 0.10728363082816617,
+          "reachability_cosine_mean": 0.997923579207568,
+          "realized_displacement_mean": 0.32479615388685956
+        },
+        "effect_spearman": 0.635191546847206,
+        "effect_spearman_std": 0.02564067697766831,
+        "epochs": 5,
+        "gain_within_r2": 0.5161724629937299,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.6189316445769899,
+              "direction_cosine_median": 0.9352452967856896,
+              "frac_positive": 0.9,
+              "jacobian_r2_heldout_mean": 0.23756226063911443,
+              "n_directions": 10,
+              "overshoot": 4.761859025656594,
+              "passed": true,
+              "planned_step_mean": 0.1181937312869771,
+              "reachability_cosine_mean": 0.9983523217725232,
+              "realized_displacement_mean": 0.562821886104922
+            },
+            "effect_spearman": 0.6608322238248743,
+            "gain_within_r2": 0.6211745563772191,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.5423183772293763,
+              "direction_cosine_median": 0.7382506623640358,
+              "frac_positive": 0.9230769230769231,
+              "jacobian_r2_heldout_mean": 0.44396294728294383,
+              "n_directions": 13,
+              "overshoot": 3.0274530362146153,
+              "passed": true,
+              "planned_step_mean": 0.10728363082816617,
+              "reachability_cosine_mean": 0.997923579207568,
+              "realized_displacement_mean": 0.32479615388685956
+            },
+            "effect_spearman": 0.6095508698695377,
+            "gain_within_r2": 0.4111703696102408,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 4,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.10054220940256002,
+        "c6_std": 0.0018597534585553105,
+        "control": {
+          "actionable_survival": 0.75,
+          "direction_cosine_mean": 0.09868245594400471,
+          "direction_cosine_median": 0.2905723175984325,
+          "frac_positive": 0.5833333333333334,
+          "jacobian_r2_heldout_mean": 0.3384650548468477,
+          "n_directions": 12,
+          "overshoot": 2.6162873054945597,
+          "passed": false,
+          "planned_step_mean": 0.16267190740677664,
+          "reachability_cosine_mean": 0.9836765389215428,
+          "realized_displacement_mean": 0.42559644630893617
+        },
+        "effect_spearman": 0.8048931425304082,
+        "effect_spearman_std": 0.0008184104316679153,
+        "epochs": 60,
+        "gain_within_r2": 0.8695564928662795,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7333333333333333,
+              "direction_cosine_mean": 0.10240196286111533,
+              "direction_cosine_median": -0.08150912818150015,
+              "frac_positive": 0.45454545454545453,
+              "jacobian_r2_heldout_mean": 0.30427903442787707,
+              "n_directions": 11,
+              "overshoot": 2.355931106751933,
+              "passed": false,
+              "planned_step_mean": 0.17260017814964307,
+              "reachability_cosine_mean": 0.9764560817717669,
+              "realized_displacement_mean": 0.40663412873366944
+            },
+            "effect_spearman": 0.8057115529620762,
+            "gain_within_r2": 0.8865885280212138,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.75,
+              "direction_cosine_mean": 0.09868245594400471,
+              "direction_cosine_median": 0.2905723175984325,
+              "frac_positive": 0.5833333333333334,
+              "jacobian_r2_heldout_mean": 0.3384650548468477,
+              "n_directions": 12,
+              "overshoot": 2.6162873054945597,
+              "passed": false,
+              "planned_step_mean": 0.16267190740677664,
+              "reachability_cosine_mean": 0.9836765389215428,
+              "realized_displacement_mean": 0.42559644630893617
+            },
+            "effect_spearman": 0.8040747320987404,
+            "gain_within_r2": 0.8525244577113451,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 4,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.9101199985436829,
+        "c6_std": 0.07993753113018409,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.8301824674134988,
+          "direction_cosine_median": 0.9801140262865096,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.26176198320557925,
+          "n_directions": 9,
+          "overshoot": 2.1976115948759563,
+          "passed": true,
+          "planned_step_mean": 0.1311117658359072,
+          "reachability_cosine_mean": 0.9993499376138737,
+          "realized_displacement_mean": 0.28813273682565094
+        },
+        "effect_spearman": 0.5181388566286212,
+        "effect_spearman_std": 0.005969182488025471,
+        "epochs": 5,
+        "gain_within_r2": 0.3693137308067495,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.990057529673867,
+              "direction_cosine_median": 0.9939452699071313,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.28102814185038094,
+              "n_directions": 8,
+              "overshoot": 2.5493960451753357,
+              "passed": true,
+              "planned_step_mean": 0.08356825726964107,
+              "reachability_cosine_mean": 0.9995496799664771,
+              "realized_displacement_mean": 0.21304858458541792
+            },
+            "effect_spearman": 0.5121696741405958,
+            "gain_within_r2": 0.3048427982817066,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.8301824674134988,
+              "direction_cosine_median": 0.9801140262865096,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.26176198320557925,
+              "n_directions": 9,
+              "overshoot": 2.1976115948759563,
+              "passed": true,
+              "planned_step_mean": 0.1311117658359072,
+              "reachability_cosine_mean": 0.9993499376138737,
+              "realized_displacement_mean": 0.28813273682565094
+            },
+            "effect_spearman": 0.5241080391166467,
+            "gain_within_r2": 0.43378466333179244,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 5,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.3533364785242358,
+        "c6_std": 0.174197251293295,
+        "control": {
+          "actionable_survival": 0.625,
+          "direction_cosine_mean": 0.5275337298175308,
+          "direction_cosine_median": 0.6956814390422641,
+          "frac_positive": 0.8,
+          "jacobian_r2_heldout_mean": 0.29896124386661727,
+          "n_directions": 10,
+          "overshoot": 1.5257304222337713,
+          "passed": true,
+          "planned_step_mean": 0.14832461701655672,
+          "reachability_cosine_mean": 0.9810355599357967,
+          "realized_displacement_mean": 0.22630338054833352
+        },
+        "effect_spearman": 0.7686535950167516,
+        "effect_spearman_std": 0.007558621651072128,
+        "epochs": 60,
+        "gain_within_r2": 0.7720734256331614,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.75,
+              "direction_cosine_mean": 0.1791392272309408,
+              "direction_cosine_median": 0.18391081865188152,
+              "frac_positive": 0.5833333333333334,
+              "jacobian_r2_heldout_mean": 0.21478835284506648,
+              "n_directions": 12,
+              "overshoot": 1.294219740522104,
+              "passed": false,
+              "planned_step_mean": 0.14443935675759098,
+              "reachability_cosine_mean": 0.9929551151896847,
+              "realized_displacement_mean": 0.186936266823989
+            },
+            "effect_spearman": 0.7610949733656794,
+            "gain_within_r2": 0.7961665587587975,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.625,
+              "direction_cosine_mean": 0.5275337298175308,
+              "direction_cosine_median": 0.6956814390422641,
+              "frac_positive": 0.8,
+              "jacobian_r2_heldout_mean": 0.29896124386661727,
+              "n_directions": 10,
+              "overshoot": 1.5257304222337713,
+              "passed": true,
+              "planned_step_mean": 0.14832461701655672,
+              "reachability_cosine_mean": 0.9810355599357967,
+              "realized_displacement_mean": 0.22630338054833352
+            },
+            "effect_spearman": 0.7762122166678237,
+            "gain_within_r2": 0.7479802925075252,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 5,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.18008672587183921,
+        "c6_std": 0.045226610456019375,
+        "control": {
+          "actionable_survival": 0.6666666666666666,
+          "direction_cosine_mean": 0.13486011541581985,
+          "direction_cosine_median": 0.15337666082192875,
+          "frac_positive": 0.6,
+          "jacobian_r2_heldout_mean": 0.43639929406561145,
+          "n_directions": 10,
+          "overshoot": 4.1003886694577165,
+          "passed": false,
+          "planned_step_mean": 0.14818176326045265,
+          "reachability_cosine_mean": 0.9743086683484832,
+          "realized_displacement_mean": 0.6076028230934258
+        },
+        "effect_spearman": 0.6431837220657295,
+        "effect_spearman_std": 0.0018633465075988398,
+        "epochs": 5,
+        "gain_within_r2": 0.445676917563257,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7692307692307693,
+              "direction_cosine_mean": 0.2253133363278586,
+              "direction_cosine_median": 0.33632188604668856,
+              "frac_positive": 0.7,
+              "jacobian_r2_heldout_mean": 0.4213266324421431,
+              "n_directions": 10,
+              "overshoot": 3.319516230167392,
+              "passed": false,
+              "planned_step_mean": 0.14961889716672122,
+              "reachability_cosine_mean": 0.9906258060796327,
+              "realized_displacement_mean": 0.49666235748467713
+            },
+            "effect_spearman": 0.6450470685733284,
+            "gain_within_r2": 0.4213325431022388,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.6666666666666666,
+              "direction_cosine_mean": 0.13486011541581985,
+              "direction_cosine_median": 0.15337666082192875,
+              "frac_positive": 0.6,
+              "jacobian_r2_heldout_mean": 0.43639929406561145,
+              "n_directions": 10,
+              "overshoot": 4.1003886694577165,
+              "passed": false,
+              "planned_step_mean": 0.14818176326045265,
+              "reachability_cosine_mean": 0.9743086683484832,
+              "realized_displacement_mean": 0.6076028230934258
+            },
+            "effect_spearman": 0.6413203755581307,
+            "gain_within_r2": 0.47002129202427523,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 6,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": -0.02204682425151605,
+        "c6_std": 0.23717937700904174,
+        "control": {
+          "actionable_survival": 0.625,
+          "direction_cosine_mean": -0.2592262012605578,
+          "direction_cosine_median": -0.2732040019649702,
+          "frac_positive": 0.5,
+          "jacobian_r2_heldout_mean": 0.33927386523812453,
+          "n_directions": 10,
+          "overshoot": 3.42437200358693,
+          "passed": false,
+          "planned_step_mean": 0.17655611143579764,
+          "reachability_cosine_mean": 0.9669557624474969,
+          "realized_displacement_mean": 0.6045938050629196
+        },
+        "effect_spearman": 0.7083053018014172,
+        "effect_spearman_std": 0.0023329102402036006,
+        "epochs": 60,
+        "gain_within_r2": 0.4908158570999926,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7142857142857143,
+              "direction_cosine_mean": 0.21513255275752569,
+              "direction_cosine_median": 0.28242588213684283,
+              "frac_positive": 0.7,
+              "jacobian_r2_heldout_mean": 0.28416129519451305,
+              "n_directions": 10,
+              "overshoot": 2.2837610710863823,
+              "passed": false,
+              "planned_step_mean": 0.2047179235632214,
+              "reachability_cosine_mean": 0.9829255106863855,
+              "realized_displacement_mean": 0.4675268243873226
+            },
+            "effect_spearman": 0.7106382120416208,
+            "gain_within_r2": 0.43386930317401673,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.625,
+              "direction_cosine_mean": -0.2592262012605578,
+              "direction_cosine_median": -0.2732040019649702,
+              "frac_positive": 0.5,
+              "jacobian_r2_heldout_mean": 0.33927386523812453,
+              "n_directions": 10,
+              "overshoot": 3.42437200358693,
+              "passed": false,
+              "planned_step_mean": 0.17655611143579764,
+              "reachability_cosine_mean": 0.9669557624474969,
+              "realized_displacement_mean": 0.6045938050629196
+            },
+            "effect_spearman": 0.7059723915612136,
+            "gain_within_r2": 0.5477624110259685,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 6,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.8256700706158155,
+        "c6_std": 0.014636617974026322,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.8110334526417893,
+          "direction_cosine_median": 0.9534509174442308,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.28772154905837216,
+          "n_directions": 13,
+          "overshoot": 1.652488023139345,
+          "passed": true,
+          "planned_step_mean": 0.08787703340688434,
+          "reachability_cosine_mean": 0.9983541928478908,
+          "realized_displacement_mean": 0.1452157452138925
+        },
+        "effect_spearman": -0.07011298111929148,
+        "effect_spearman_std": 0.031104108530344166,
+        "epochs": 5,
+        "gain_within_r2": -0.003075440761343251,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.8403066885898419,
+              "direction_cosine_median": 0.9009507194223536,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.4300657438503509,
+              "n_directions": 16,
+              "overshoot": 1.185600706511844,
+              "passed": true,
+              "planned_step_mean": 0.1597096887777291,
+              "reachability_cosine_mean": 0.9978459214457718,
+              "realized_displacement_mean": 0.18935191985166233
+            },
+            "effect_spearman": -0.039008872588947315,
+            "gain_within_r2": -0.004869945652548724,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.8110334526417893,
+              "direction_cosine_median": 0.9534509174442308,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.28772154905837216,
+              "n_directions": 13,
+              "overshoot": 1.652488023139345,
+              "passed": true,
+              "planned_step_mean": 0.08787703340688434,
+              "reachability_cosine_mean": 0.9983541928478908,
+              "realized_displacement_mean": 0.1452157452138925
+            },
+            "effect_spearman": -0.10121708964963565,
+            "gain_within_r2": -0.0012809358701377782,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 7,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.45188788442262434,
+        "c6_std": 0.28824591049683923,
+        "control": {
+          "actionable_survival": 0.75,
+          "direction_cosine_mean": 0.16364197392578514,
+          "direction_cosine_median": 0.10523653334949375,
+          "frac_positive": 0.6666666666666666,
+          "jacobian_r2_heldout_mean": 0.18201343560256866,
+          "n_directions": 9,
+          "overshoot": 1.8142268544657774,
+          "passed": false,
+          "planned_step_mean": 0.2095686772650936,
+          "reachability_cosine_mean": 0.9653507126289038,
+          "realized_displacement_mean": 0.38020512214920443
+        },
+        "effect_spearman": 0.18503307721373913,
+        "effect_spearman_std": 0.03088585146108093,
+        "epochs": 60,
+        "gain_within_r2": -0.025397705674915894,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.35714285714285715,
+              "direction_cosine_mean": 0.7401337949194635,
+              "direction_cosine_median": 0.8500214680989993,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.18252252407706973,
+              "n_directions": 5,
+              "overshoot": 0.8946915497325028,
+              "passed": true,
+              "planned_step_mean": 0.1868262762670465,
+              "reachability_cosine_mean": 0.9784465104470836,
+              "realized_displacement_mean": 0.16715189064411654
+            },
+            "effect_spearman": 0.21591892867482007,
+            "gain_within_r2": -0.07257791864560259,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.75,
+              "direction_cosine_mean": 0.16364197392578514,
+              "direction_cosine_median": 0.10523653334949375,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.18201343560256866,
+              "n_directions": 9,
+              "overshoot": 1.8142268544657774,
+              "passed": false,
+              "planned_step_mean": 0.2095686772650936,
+              "reachability_cosine_mean": 0.9653507126289038,
+              "realized_displacement_mean": 0.38020512214920443
+            },
+            "effect_spearman": 0.1541472257526582,
+            "gain_within_r2": 0.021782507295770803,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 7,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.5857083411629935,
+        "c6_std": 0.059083254854519596,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.5266250863084739,
+          "direction_cosine_median": 0.6459463638628985,
+          "frac_positive": 0.8461538461538461,
+          "jacobian_r2_heldout_mean": 0.3256902020868043,
+          "n_directions": 13,
+          "overshoot": 3.8916791211416153,
+          "passed": true,
+          "planned_step_mean": 0.09530808703063465,
+          "reachability_cosine_mean": 0.9983292642453709,
+          "realized_displacement_mean": 0.37090849237306883
+        },
+        "effect_spearman": 0.6366416661839848,
+        "effect_spearman_std": 0.019819533255237776,
+        "epochs": 5,
+        "gain_within_r2": 0.4195909003890659,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.6447915960175131,
+              "direction_cosine_median": 0.9646416716728944,
+              "frac_positive": 0.8181818181818182,
+              "jacobian_r2_heldout_mean": 0.2805874204255836,
+              "n_directions": 11,
+              "overshoot": 3.9457292362399734,
+              "passed": true,
+              "planned_step_mean": 0.1335865271286665,
+              "reachability_cosine_mean": 0.9996128506888937,
+              "realized_displacement_mean": 0.5270962656593438
+            },
+            "effect_spearman": 0.616822132928747,
+            "gain_within_r2": 0.5041479888277243,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.5266250863084739,
+              "direction_cosine_median": 0.6459463638628985,
+              "frac_positive": 0.8461538461538461,
+              "jacobian_r2_heldout_mean": 0.3256902020868043,
+              "n_directions": 13,
+              "overshoot": 3.8916791211416153,
+              "passed": true,
+              "planned_step_mean": 0.09530808703063465,
+              "reachability_cosine_mean": 0.9983292642453709,
+              "realized_displacement_mean": 0.37090849237306883
+            },
+            "effect_spearman": 0.6564611994392225,
+            "gain_within_r2": 0.3350338119504075,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 8,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.6422968174366815,
+        "c6_std": 0.016407491772418514,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.6587043092091001,
+          "direction_cosine_median": 0.8000889782742734,
+          "frac_positive": 0.9333333333333333,
+          "jacobian_r2_heldout_mean": 0.2964871824779625,
+          "n_directions": 15,
+          "overshoot": 1.8533403919680276,
+          "passed": true,
+          "planned_step_mean": 0.14182969845639878,
+          "reachability_cosine_mean": 0.9846066564552333,
+          "realized_displacement_mean": 0.2628587089298893
+        },
+        "effect_spearman": 0.7760109817785408,
+        "effect_spearman_std": 0.0015192131324103797,
+        "epochs": 60,
+        "gain_within_r2": 0.7346171237640279,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7333333333333333,
+              "direction_cosine_mean": 0.625889325664263,
+              "direction_cosine_median": 0.8462426825680057,
+              "frac_positive": 0.8181818181818182,
+              "jacobian_r2_heldout_mean": 0.27576782956810103,
+              "n_directions": 11,
+              "overshoot": 1.2443886002344986,
+              "passed": true,
+              "planned_step_mean": 0.1611503948038391,
+              "reachability_cosine_mean": 0.9971258113744366,
+              "realized_displacement_mean": 0.20053371421718616
+            },
+            "effect_spearman": 0.7775301949109512,
+            "gain_within_r2": 0.7802991288018735,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.6587043092091001,
+              "direction_cosine_median": 0.8000889782742734,
+              "frac_positive": 0.9333333333333333,
+              "jacobian_r2_heldout_mean": 0.2964871824779625,
+              "n_directions": 15,
+              "overshoot": 1.8533403919680276,
+              "passed": true,
+              "planned_step_mean": 0.14182969845639878,
+              "reachability_cosine_mean": 0.9846066564552333,
+              "realized_displacement_mean": 0.2628587089298893
+            },
+            "effect_spearman": 0.7744917686461305,
+            "gain_within_r2": 0.6889351187261823,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 8,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.4851005159257393,
+        "c6_std": 0.059530483482762186,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.5446309994085015,
+          "direction_cosine_median": 0.9091780378628911,
+          "frac_positive": 0.7272727272727273,
+          "jacobian_r2_heldout_mean": 0.3569409255249196,
+          "n_directions": 11,
+          "overshoot": 1.4848678957973611,
+          "passed": true,
+          "planned_step_mean": 0.11999227866402028,
+          "reachability_cosine_mean": 0.9914217212024319,
+          "realized_displacement_mean": 0.17817268233177438
+        },
+        "effect_spearman": 0.12574032115408648,
+        "effect_spearman_std": 0.10182000113802764,
+        "epochs": 5,
+        "gain_within_r2": -0.11802226791769765,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.4255700324429771,
+              "direction_cosine_median": 0.6173837834982684,
+              "frac_positive": 0.7272727272727273,
+              "jacobian_r2_heldout_mean": 0.35748571590324896,
+              "n_directions": 11,
+              "overshoot": 1.4774371495328091,
+              "passed": true,
+              "planned_step_mean": 0.11759193892990873,
+              "reachability_cosine_mean": 0.9948412557853229,
+              "realized_displacement_mean": 0.1737346990606405
+            },
+            "effect_spearman": 0.22756032229211412,
+            "gain_within_r2": -0.1457239564364834,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.5446309994085015,
+              "direction_cosine_median": 0.9091780378628911,
+              "frac_positive": 0.7272727272727273,
+              "jacobian_r2_heldout_mean": 0.3569409255249196,
+              "n_directions": 11,
+              "overshoot": 1.4848678957973611,
+              "passed": true,
+              "planned_step_mean": 0.11999227866402028,
+              "reachability_cosine_mean": 0.9914217212024319,
+              "realized_displacement_mean": 0.17817268233177438
+            },
+            "effect_spearman": 0.02392032001605885,
+            "gain_within_r2": -0.09032057939891192,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 9,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.46780899717674546,
+        "c6_std": 0.07183891332378162,
+        "control": {
+          "actionable_survival": 0.7333333333333333,
+          "direction_cosine_mean": 0.5396479105005271,
+          "direction_cosine_median": 0.611522537682981,
+          "frac_positive": 0.9090909090909091,
+          "jacobian_r2_heldout_mean": 0.26865699196837217,
+          "n_directions": 11,
+          "overshoot": 1.0814232042443965,
+          "passed": true,
+          "planned_step_mean": 0.2114036128235435,
+          "reachability_cosine_mean": 0.983984060114805,
+          "realized_displacement_mean": 0.22861677236847822
+        },
+        "effect_spearman": 0.20024195764029618,
+        "effect_spearman_std": 0.01477085245496329,
+        "epochs": 60,
+        "gain_within_r2": 0.0714601850348382,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.4,
+              "direction_cosine_mean": 0.39597008385296384,
+              "direction_cosine_median": 0.6857020731581427,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.26670721371362616,
+              "n_directions": 6,
+              "overshoot": 1.2475274085200307,
+              "passed": true,
+              "planned_step_mean": 0.21838490759118015,
+              "reachability_cosine_mean": 0.9767668692017081,
+              "realized_displacement_mean": 0.27244115782711137
+            },
+            "effect_spearman": 0.21501281009525947,
+            "gain_within_r2": -0.007335494147099775,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.7333333333333333,
+              "direction_cosine_mean": 0.5396479105005271,
+              "direction_cosine_median": 0.611522537682981,
+              "frac_positive": 0.9090909090909091,
+              "jacobian_r2_heldout_mean": 0.26865699196837217,
+              "n_directions": 11,
+              "overshoot": 1.0814232042443965,
+              "passed": true,
+              "planned_step_mean": 0.2114036128235435,
+              "reachability_cosine_mean": 0.983984060114805,
+              "realized_displacement_mean": 0.22861677236847822
+            },
+            "effect_spearman": 0.18547110518533289,
+            "gain_within_r2": 0.15025586421677617,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 9,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.689618612723198,
+        "c6_std": 0.03830975312464496,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.651308859598553,
+          "direction_cosine_median": 0.824005085152602,
+          "frac_positive": 0.875,
+          "jacobian_r2_heldout_mean": 0.27382039744601433,
+          "n_directions": 16,
+          "overshoot": 2.6516365280521237,
+          "passed": true,
+          "planned_step_mean": 0.1534927765018626,
+          "reachability_cosine_mean": 0.9959390579007521,
+          "realized_displacement_mean": 0.40700705296447953
+        },
+        "effect_spearman": 0.39184956710617236,
+        "effect_spearman_std": 0.03328442987959396,
+        "epochs": 5,
+        "gain_within_r2": 0.2955667400446933,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.7279283658478429,
+              "direction_cosine_median": 0.9107653783066936,
+              "frac_positive": 0.9166666666666666,
+              "jacobian_r2_heldout_mean": 0.33474737493830453,
+              "n_directions": 12,
+              "overshoot": 2.892363307142235,
+              "passed": true,
+              "planned_step_mean": 0.09996959557181569,
+              "reachability_cosine_mean": 0.996867470843298,
+              "realized_displacement_mean": 0.28914839006176857
+            },
+            "effect_spearman": 0.4251339969857663,
+            "gain_within_r2": 0.38549522036574413,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.651308859598553,
+              "direction_cosine_median": 0.824005085152602,
+              "frac_positive": 0.875,
+              "jacobian_r2_heldout_mean": 0.27382039744601433,
+              "n_directions": 16,
+              "overshoot": 2.6516365280521237,
+              "passed": true,
+              "planned_step_mean": 0.1534927765018626,
+              "reachability_cosine_mean": 0.9959390579007521,
+              "realized_displacement_mean": 0.40700705296447953
+            },
+            "effect_spearman": 0.3585651372265784,
+            "gain_within_r2": 0.20563825972364247,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 10,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.25756847358178253,
+        "c6_std": 0.26272566842675865,
+        "control": {
+          "actionable_survival": 0.875,
+          "direction_cosine_mean": 0.5202941420085412,
+          "direction_cosine_median": 0.6528224712028765,
+          "frac_positive": 0.8571428571428571,
+          "jacobian_r2_heldout_mean": 0.231215457537539,
+          "n_directions": 14,
+          "overshoot": 1.8301644887863355,
+          "passed": true,
+          "planned_step_mean": 0.18036730050633004,
+          "reachability_cosine_mean": 0.9562620411907543,
+          "realized_displacement_mean": 0.3301018283249389
+        },
+        "effect_spearman": 0.6949606504111954,
+        "effect_spearman_std": 0.0019017352927702125,
+        "epochs": 60,
+        "gain_within_r2": 0.6082508481422442,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.8571428571428571,
+              "direction_cosine_mean": -0.0051571948449761484,
+              "direction_cosine_median": -0.15948281542583484,
+              "frac_positive": 0.4166666666666667,
+              "jacobian_r2_heldout_mean": 0.29659724442259106,
+              "n_directions": 12,
+              "overshoot": 2.759224343567838,
+              "passed": false,
+              "planned_step_mean": 0.16294204397223666,
+              "reachability_cosine_mean": 0.9812466300330346,
+              "realized_displacement_mean": 0.4495936543188965
+            },
+            "effect_spearman": 0.6968623857039656,
+            "gain_within_r2": 0.6172579208597532,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.875,
+              "direction_cosine_mean": 0.5202941420085412,
+              "direction_cosine_median": 0.6528224712028765,
+              "frac_positive": 0.8571428571428571,
+              "jacobian_r2_heldout_mean": 0.231215457537539,
+              "n_directions": 14,
+              "overshoot": 1.8301644887863355,
+              "passed": true,
+              "planned_step_mean": 0.18036730050633004,
+              "reachability_cosine_mean": 0.9562620411907543,
+              "realized_displacement_mean": 0.3301018283249389
+            },
+            "effect_spearman": 0.6930589151184252,
+            "gain_within_r2": 0.5992437754247351,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 10,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.6347383097578063,
+        "c6_std": 0.17761167600879194,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.45712663374901435,
+          "direction_cosine_median": 0.7696018192771017,
+          "frac_positive": 0.7857142857142857,
+          "jacobian_r2_heldout_mean": 0.5203227371108089,
+          "n_directions": 14,
+          "overshoot": 2.538421263970964,
+          "passed": true,
+          "planned_step_mean": 0.13752815814219949,
+          "reachability_cosine_mean": 0.9877509829827588,
+          "realized_displacement_mean": 0.3491044010229206
+        },
+        "effect_spearman": 0.05899585965008132,
+        "effect_spearman_std": 0.00010249248562950453,
+        "epochs": 5,
+        "gain_within_r2": 0.0043721099856004475,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.8123499857665982,
+              "direction_cosine_median": 0.8613507990901192,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.44766637591660996,
+              "n_directions": 13,
+              "overshoot": 1.5181399771386133,
+              "passed": true,
+              "planned_step_mean": 0.11619286733005124,
+              "reachability_cosine_mean": 0.9913888916341393,
+              "realized_displacement_mean": 0.17639703695211392
+            },
+            "effect_spearman": 0.058893367164451815,
+            "gain_within_r2": 0.03329734816704377,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.45712663374901435,
+              "direction_cosine_median": 0.7696018192771017,
+              "frac_positive": 0.7857142857142857,
+              "jacobian_r2_heldout_mean": 0.5203227371108089,
+              "n_directions": 14,
+              "overshoot": 2.538421263970964,
+              "passed": true,
+              "planned_step_mean": 0.13752815814219949,
+              "reachability_cosine_mean": 0.9877509829827588,
+              "realized_displacement_mean": 0.3491044010229206
+            },
+            "effect_spearman": 0.059098352135710824,
+            "gain_within_r2": -0.024553128195842877,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 11,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.1159110050872828,
+        "c6_std": 0.10968906774751488,
+        "control": {
+          "actionable_survival": 0.5333333333333333,
+          "direction_cosine_mean": 0.006221937339767912,
+          "direction_cosine_median": -0.012789150196247177,
+          "frac_positive": 0.5,
+          "jacobian_r2_heldout_mean": 0.285856537249527,
+          "n_directions": 8,
+          "overshoot": 2.318607397143847,
+          "passed": false,
+          "planned_step_mean": 0.2087288097667463,
+          "reachability_cosine_mean": 0.9888080518433615,
+          "realized_displacement_mean": 0.4839601623222088
+        },
+        "effect_spearman": 0.5667969514037176,
+        "effect_spearman_std": 0.06443762088631988,
+        "epochs": 60,
+        "gain_within_r2": 0.6217496421866338,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.6666666666666666,
+              "direction_cosine_mean": 0.2256000728347977,
+              "direction_cosine_median": 0.280744137284339,
+              "frac_positive": 0.7,
+              "jacobian_r2_heldout_mean": 0.2289381142318029,
+              "n_directions": 10,
+              "overshoot": 1.3713935856422157,
+              "passed": false,
+              "planned_step_mean": 0.21329969237370722,
+              "reachability_cosine_mean": 0.9539305908714839,
+              "realized_displacement_mean": 0.2925178299407599
+            },
+            "effect_spearman": 0.5023593305173977,
+            "gain_within_r2": 0.5867137638022615,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.5333333333333333,
+              "direction_cosine_mean": 0.006221937339767912,
+              "direction_cosine_median": -0.012789150196247177,
+              "frac_positive": 0.5,
+              "jacobian_r2_heldout_mean": 0.285856537249527,
+              "n_directions": 8,
+              "overshoot": 2.318607397143847,
+              "passed": false,
+              "planned_step_mean": 0.2087288097667463,
+              "reachability_cosine_mean": 0.9888080518433615,
+              "realized_displacement_mean": 0.4839601623222088
+            },
+            "effect_spearman": 0.6312345722900374,
+            "gain_within_r2": 0.6567855205710059,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 11,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.6391949450605712,
+        "c6_std": 0.3056961040521642,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.9448910491127354,
+          "direction_cosine_median": 0.9909165407247855,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.42388544707761244,
+          "n_directions": 8,
+          "overshoot": 2.181823004784493,
+          "passed": true,
+          "planned_step_mean": 0.07101778094310618,
+          "reachability_cosine_mean": 0.9971477042863897,
+          "realized_displacement_mean": 0.15494822821041482
+        },
+        "effect_spearman": 0.07408854078845693,
+        "effect_spearman_std": 0.11826718965926433,
+        "epochs": 5,
+        "gain_within_r2": -0.005853115310589407,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.8,
+              "direction_cosine_mean": 0.333498841008407,
+              "direction_cosine_median": 0.6330619537794915,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.19156641798566953,
+              "n_directions": 12,
+              "overshoot": 1.5918378400509376,
+              "passed": true,
+              "planned_step_mean": 0.11476945382345692,
+              "reachability_cosine_mean": 0.9869069043675681,
+              "realized_displacement_mean": 0.1826943594781575
+            },
+            "effect_spearman": 0.19235573044772125,
+            "gain_within_r2": -0.006157369447976402,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.9448910491127354,
+              "direction_cosine_median": 0.9909165407247855,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.42388544707761244,
+              "n_directions": 8,
+              "overshoot": 2.181823004784493,
+              "passed": true,
+              "planned_step_mean": 0.07101778094310618,
+              "reachability_cosine_mean": 0.9971477042863897,
+              "realized_displacement_mean": 0.15494822821041482
+            },
+            "effect_spearman": -0.04417864887080739,
+            "gain_within_r2": -0.005548861173202413,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 12,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.35426734635405677,
+        "c6_std": 0.25393269504458554,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.10033465130947121,
+          "direction_cosine_median": 0.17515968574436336,
+          "frac_positive": 0.6428571428571429,
+          "jacobian_r2_heldout_mean": 0.3564199925148649,
+          "n_directions": 14,
+          "overshoot": 1.8945480344696954,
+          "passed": false,
+          "planned_step_mean": 0.2144718281438169,
+          "reachability_cosine_mean": 0.9744609242769032,
+          "realized_displacement_mean": 0.40632718045899063
+        },
+        "effect_spearman": 0.5149369028862171,
+        "effect_spearman_std": 0.022741409951600983,
+        "epochs": 60,
+        "gain_within_r2": -0.00885146542650872,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.375,
+              "direction_cosine_mean": 0.6082000413986424,
+              "direction_cosine_median": 0.673213672101726,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.20628140527236538,
+              "n_directions": 6,
+              "overshoot": 1.3404760938203952,
+              "passed": true,
+              "planned_step_mean": 0.21378060477288127,
+              "reachability_cosine_mean": 0.9793713015175795,
+              "realized_displacement_mean": 0.28656779002051364
+            },
+            "effect_spearman": 0.5376783128378181,
+            "gain_within_r2": -0.004402750847142256,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.10033465130947121,
+              "direction_cosine_median": 0.17515968574436336,
+              "frac_positive": 0.6428571428571429,
+              "jacobian_r2_heldout_mean": 0.3564199925148649,
+              "n_directions": 14,
+              "overshoot": 1.8945480344696954,
+              "passed": false,
+              "planned_step_mean": 0.2144718281438169,
+              "reachability_cosine_mean": 0.9744609242769032,
+              "realized_displacement_mean": 0.40632718045899063
+            },
+            "effect_spearman": 0.4921954929346161,
+            "gain_within_r2": -0.013300180005875184,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 12,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.6653023694057751,
+        "c6_std": 0.035083820623275086,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.6302185487825,
+          "direction_cosine_median": 0.8715728024658883,
+          "frac_positive": 0.875,
+          "jacobian_r2_heldout_mean": 0.2381916335598595,
+          "n_directions": 8,
+          "overshoot": 3.0966854443023597,
+          "passed": true,
+          "planned_step_mean": 0.15663567843995024,
+          "reachability_cosine_mean": 0.9966346521679743,
+          "realized_displacement_mean": 0.48505142548341884
+        },
+        "effect_spearman": 0.7777291425402534,
+        "effect_spearman_std": 0.02679480286398994,
+        "epochs": 5,
+        "gain_within_r2": 0.36928681541557046,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.6923076923076923,
+              "direction_cosine_mean": 0.7003861900290502,
+              "direction_cosine_median": 0.9877541009485876,
+              "frac_positive": 0.8888888888888888,
+              "jacobian_r2_heldout_mean": 0.2636762469547825,
+              "n_directions": 9,
+              "overshoot": 2.526128777320644,
+              "passed": true,
+              "planned_step_mean": 0.196066415679515,
+              "reachability_cosine_mean": 0.9876024110615167,
+              "realized_displacement_mean": 0.49528901491413435
+            },
+            "effect_spearman": 0.8045239454042433,
+            "gain_within_r2": 0.44217953060567095,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.6302185487825,
+              "direction_cosine_median": 0.8715728024658883,
+              "frac_positive": 0.875,
+              "jacobian_r2_heldout_mean": 0.2381916335598595,
+              "n_directions": 8,
+              "overshoot": 3.0966854443023597,
+              "passed": true,
+              "planned_step_mean": 0.15663567843995024,
+              "reachability_cosine_mean": 0.9966346521679743,
+              "realized_displacement_mean": 0.48505142548341884
+            },
+            "effect_spearman": 0.7509343396762634,
+            "gain_within_r2": 0.29639410022546997,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 13,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.4374999121708857,
+        "c6_std": 0.003932406871943184,
+        "control": {
+          "actionable_survival": 0.6666666666666666,
+          "direction_cosine_mean": 0.4335675052989425,
+          "direction_cosine_median": 0.8891975554560504,
+          "frac_positive": 0.625,
+          "jacobian_r2_heldout_mean": 0.22521393164639386,
+          "n_directions": 8,
+          "overshoot": 2.422242992833647,
+          "passed": true,
+          "planned_step_mean": 0.14469016453404507,
+          "reachability_cosine_mean": 0.9740558835645732,
+          "realized_displacement_mean": 0.35047473717453814
+        },
+        "effect_spearman": 0.8923606023719212,
+        "effect_spearman_std": 0.00680036687776997,
+        "epochs": 60,
+        "gain_within_r2": 0.7763896524165681,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.8333333333333334,
+              "direction_cosine_mean": 0.44143231904282887,
+              "direction_cosine_median": 0.39120739512387337,
+              "frac_positive": 0.7,
+              "jacobian_r2_heldout_mean": 0.2413644495981603,
+              "n_directions": 10,
+              "overshoot": 1.7755878203845012,
+              "passed": true,
+              "planned_step_mean": 0.18066716176467312,
+              "reachability_cosine_mean": 0.9844274229095046,
+              "realized_displacement_mean": 0.32079041197279007
+            },
+            "effect_spearman": 0.8991609692496911,
+            "gain_within_r2": 0.8484198690578322,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.6666666666666666,
+              "direction_cosine_mean": 0.4335675052989425,
+              "direction_cosine_median": 0.8891975554560504,
+              "frac_positive": 0.625,
+              "jacobian_r2_heldout_mean": 0.22521393164639386,
+              "n_directions": 8,
+              "overshoot": 2.422242992833647,
+              "passed": true,
+              "planned_step_mean": 0.14469016453404507,
+              "reachability_cosine_mean": 0.9740558835645732,
+              "realized_displacement_mean": 0.35047473717453814
+            },
+            "effect_spearman": 0.8855602354941512,
+            "gain_within_r2": 0.704359435775304,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 13,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.3467807226501946,
+        "c6_std": 0.10741313774968479,
+        "control": {
+          "actionable_survival": 0.8571428571428571,
+          "direction_cosine_mean": 0.4541938603998794,
+          "direction_cosine_median": 0.6760495409686068,
+          "frac_positive": 0.75,
+          "jacobian_r2_heldout_mean": 0.3356248737773726,
+          "n_directions": 12,
+          "overshoot": 2.2565972648321413,
+          "passed": true,
+          "planned_step_mean": 0.11874381773907987,
+          "reachability_cosine_mean": 0.9734027730793247,
+          "realized_displacement_mean": 0.26795697432573395
+        },
+        "effect_spearman": 0.4719063375602004,
+        "effect_spearman_std": 0.09462247541285987,
+        "epochs": 5,
+        "gain_within_r2": 0.39854311290637023,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.9230769230769231,
+              "direction_cosine_mean": 0.23936758490050983,
+              "direction_cosine_median": 0.19600376883622297,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.38926649164025107,
+              "n_directions": 12,
+              "overshoot": 2.0020573037904423,
+              "passed": false,
+              "planned_step_mean": 0.18400357901164663,
+              "reachability_cosine_mean": 0.9722314164827662,
+              "realized_displacement_mean": 0.3683857092838489
+            },
+            "effect_spearman": 0.5665288129730602,
+            "gain_within_r2": 0.4830870201841774,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.8571428571428571,
+              "direction_cosine_mean": 0.4541938603998794,
+              "direction_cosine_median": 0.6760495409686068,
+              "frac_positive": 0.75,
+              "jacobian_r2_heldout_mean": 0.3356248737773726,
+              "n_directions": 12,
+              "overshoot": 2.2565972648321413,
+              "passed": true,
+              "planned_step_mean": 0.11874381773907987,
+              "reachability_cosine_mean": 0.9734027730793247,
+              "realized_displacement_mean": 0.26795697432573395
+            },
+            "effect_spearman": 0.3772838621473405,
+            "gain_within_r2": 0.3139992056285631,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 14,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.4947187514858857,
+        "c6_std": 0.10528791621495898,
+        "control": {
+          "actionable_survival": 0.7272727272727273,
+          "direction_cosine_mean": 0.3894308352709267,
+          "direction_cosine_median": 0.5002489407008173,
+          "frac_positive": 0.875,
+          "jacobian_r2_heldout_mean": 0.23825094533500774,
+          "n_directions": 8,
+          "overshoot": 1.7248007293813439,
+          "passed": true,
+          "planned_step_mean": 0.19060537534220656,
+          "reachability_cosine_mean": 0.953358924220847,
+          "realized_displacement_mean": 0.3287562904142427
+        },
+        "effect_spearman": 0.7373303485068048,
+        "effect_spearman_std": 0.0030674741157555308,
+        "epochs": 60,
+        "gain_within_r2": 0.7426786212402181,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7142857142857143,
+              "direction_cosine_mean": 0.6000066677008447,
+              "direction_cosine_median": 0.5635164868505733,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.34923158707710406,
+              "n_directions": 10,
+              "overshoot": 2.1426877959182495,
+              "passed": true,
+              "planned_step_mean": 0.22884002837878437,
+              "reachability_cosine_mean": 0.9757118828903654,
+              "realized_displacement_mean": 0.49033273602480715
+            },
+            "effect_spearman": 0.7403978226225604,
+            "gain_within_r2": 0.7397029149197503,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.7272727272727273,
+              "direction_cosine_mean": 0.3894308352709267,
+              "direction_cosine_median": 0.5002489407008173,
+              "frac_positive": 0.875,
+              "jacobian_r2_heldout_mean": 0.23825094533500774,
+              "n_directions": 8,
+              "overshoot": 1.7248007293813439,
+              "passed": true,
+              "planned_step_mean": 0.19060537534220656,
+              "reachability_cosine_mean": 0.953358924220847,
+              "realized_displacement_mean": 0.3287562904142427
+            },
+            "effect_spearman": 0.7342628743910493,
+            "gain_within_r2": 0.7456543275606861,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 14,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.6829416306630711,
+        "c6_std": 0.0870254986913776,
+        "control": {
+          "actionable_survival": 0.75,
+          "direction_cosine_mean": 0.7699671293544487,
+          "direction_cosine_median": 0.8511684568531321,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.302524438969547,
+          "n_directions": 12,
+          "overshoot": 2.4606392153158527,
+          "passed": true,
+          "planned_step_mean": 0.16971074772610947,
+          "reachability_cosine_mean": 0.9744176264164118,
+          "realized_displacement_mean": 0.41759692111544067
+        },
+        "effect_spearman": 0.08815449790726156,
+        "effect_spearman_std": 0.001729460474121522,
+        "epochs": 5,
+        "gain_within_r2": 0.02075117984202396,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.8,
+              "direction_cosine_mean": 0.5959161319716935,
+              "direction_cosine_median": 0.8047407989643744,
+              "frac_positive": 0.8333333333333334,
+              "jacobian_r2_heldout_mean": 0.27379901142753255,
+              "n_directions": 12,
+              "overshoot": 1.4392817684641606,
+              "passed": true,
+              "planned_step_mean": 0.16110833216599482,
+              "reachability_cosine_mean": 0.9863231810430633,
+              "realized_displacement_mean": 0.23188028523418444
+            },
+            "effect_spearman": 0.08988395838138308,
+            "gain_within_r2": 0.025901999071333615,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.75,
+              "direction_cosine_mean": 0.7699671293544487,
+              "direction_cosine_median": 0.8511684568531321,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.302524438969547,
+              "n_directions": 12,
+              "overshoot": 2.4606392153158527,
+              "passed": true,
+              "planned_step_mean": 0.16971074772610947,
+              "reachability_cosine_mean": 0.9744176264164118,
+              "realized_displacement_mean": 0.41759692111544067
+            },
+            "effect_spearman": 0.08642503743314003,
+            "gain_within_r2": 0.015600360612714304,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 15,
+        "smooth_weight": 0.01
+      },
+      {
+        "c6_mean": 0.5172366397744279,
+        "c6_std": 0.09723010573281102,
+        "control": {
+          "actionable_survival": 0.9375,
+          "direction_cosine_mean": 0.42000653404161686,
+          "direction_cosine_median": 0.6681461152441891,
+          "frac_positive": 0.8,
+          "jacobian_r2_heldout_mean": 0.2124791279049571,
+          "n_directions": 15,
+          "overshoot": 1.4477979634941998,
+          "passed": true,
+          "planned_step_mean": 0.22252141271553338,
+          "reachability_cosine_mean": 0.9666489375840103,
+          "realized_displacement_mean": 0.32216604816340155
+        },
+        "effect_spearman": 0.17169458066436744,
+        "effect_spearman_std": 0.05174496097409091,
+        "epochs": 60,
+        "gain_within_r2": -7.547501215710377,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.6923076923076923,
+              "direction_cosine_mean": 0.6144667455072389,
+              "direction_cosine_median": 0.7729513372004665,
+              "frac_positive": 0.8888888888888888,
+              "jacobian_r2_heldout_mean": 0.19597140446039588,
+              "n_directions": 9,
+              "overshoot": 1.240915331890209,
+              "passed": true,
+              "planned_step_mean": 0.22813482657045558,
+              "reachability_cosine_mean": 0.9791400750645711,
+              "realized_displacement_mean": 0.28309600402939217
+            },
+            "effect_spearman": 0.22343954163845833,
+            "gain_within_r2": -6.155577088351409,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.9375,
+              "direction_cosine_mean": 0.42000653404161686,
+              "direction_cosine_median": 0.6681461152441891,
+              "frac_positive": 0.8,
+              "jacobian_r2_heldout_mean": 0.2124791279049571,
+              "n_directions": 15,
+              "overshoot": 1.4477979634941998,
+              "passed": true,
+              "planned_step_mean": 0.22252141271553338,
+              "reachability_cosine_mean": 0.9666489375840103,
+              "realized_displacement_mean": 0.32216604816340155
+            },
+            "effect_spearman": 0.11994961969027651,
+            "gain_within_r2": -8.939425343069345,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 15,
+        "smooth_weight": 0.01
+      }
+    ],
+    "smooth_sweep": [
+      {
+        "c6_mean": 0.620043472738272,
+        "c6_std": 0.020050849941930238,
+        "control": {
+          "actionable_survival": 0.9375,
+          "direction_cosine_mean": 0.5999926227963418,
+          "direction_cosine_median": 0.7888582467947604,
+          "frac_positive": 0.8666666666666667,
+          "jacobian_r2_heldout_mean": 0.1386977488167129,
+          "n_directions": 15,
+          "overshoot": 1.6633957833473132,
+          "passed": true,
+          "planned_step_mean": 0.12113994880966732,
+          "reachability_cosine_mean": 0.9781209335175511,
+          "realized_displacement_mean": 0.20150368004490998
+        },
+        "effect_spearman": 0.7549870245045636,
+        "effect_spearman_std": 0.011078875027126178,
+        "epochs": 60,
+        "gain_within_r2": 0.44138159452321635,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7333333333333333,
+              "direction_cosine_mean": 0.6400943226802023,
+              "direction_cosine_median": 0.7909152723519641,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.1459233835485401,
+              "n_directions": 11,
+              "overshoot": 2.3712758120256634,
+              "passed": true,
+              "planned_step_mean": 0.1373195354490919,
+              "reachability_cosine_mean": 0.9836090839549368,
+              "realized_displacement_mean": 0.3256224929290322
+            },
+            "effect_spearman": 0.7439081494774374,
+            "gain_within_r2": 0.23614065065152157,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.9375,
+              "direction_cosine_mean": 0.5999926227963418,
+              "direction_cosine_median": 0.7888582467947604,
+              "frac_positive": 0.8666666666666667,
+              "jacobian_r2_heldout_mean": 0.1386977488167129,
+              "n_directions": 15,
+              "overshoot": 1.6633957833473132,
+              "passed": true,
+              "planned_step_mean": 0.12113994880966732,
+              "reachability_cosine_mean": 0.9781209335175511,
+              "realized_displacement_mean": 0.20150368004490998
+            },
+            "effect_spearman": 0.7660658995316898,
+            "gain_within_r2": 0.6466225383949111,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 0,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.34948268925930803,
+        "c6_std": 0.20631598914642793,
+        "control": {
+          "actionable_survival": 0.8,
+          "direction_cosine_mean": 0.5557986784057359,
+          "direction_cosine_median": 0.581746693646352,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.16721753353969063,
+          "n_directions": 12,
+          "overshoot": 3.0955072739186082,
+          "passed": true,
+          "planned_step_mean": 0.17713969500521579,
+          "reachability_cosine_mean": 0.981788894390165,
+          "realized_displacement_mean": 0.5483372143883692
+        },
+        "effect_spearman": 0.5161568495937046,
+        "effect_spearman_std": 0.00574628538004035,
+        "epochs": 60,
+        "gain_within_r2": -0.0014955696282617503,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.14316670011288007,
+              "direction_cosine_median": 0.12163621150439642,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.22062326529361734,
+              "n_directions": 15,
+              "overshoot": 1.6782971206966042,
+              "passed": false,
+              "planned_step_mean": 0.19991736705422355,
+              "reachability_cosine_mean": 0.9967586886010866,
+              "realized_displacement_mean": 0.3355207415043496
+            },
+            "effect_spearman": 0.521903134973745,
+            "gain_within_r2": -0.004444644947737109,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.8,
+              "direction_cosine_mean": 0.5557986784057359,
+              "direction_cosine_median": 0.581746693646352,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.16721753353969063,
+              "n_directions": 12,
+              "overshoot": 3.0955072739186082,
+              "passed": true,
+              "planned_step_mean": 0.17713969500521579,
+              "reachability_cosine_mean": 0.981788894390165,
+              "realized_displacement_mean": 0.5483372143883692
+            },
+            "effect_spearman": 0.5104105642136643,
+            "gain_within_r2": 0.001453505691213608,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 1,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.03035497231687727,
+        "c6_std": 0.10380366647463247,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": -0.0734486941577552,
+          "direction_cosine_median": -0.2533747271908239,
+          "frac_positive": 0.38461538461538464,
+          "jacobian_r2_heldout_mean": 0.38184846307084663,
+          "n_directions": 13,
+          "overshoot": 2.4465109819741806,
+          "passed": false,
+          "planned_step_mean": 0.27164777647140786,
+          "reachability_cosine_mean": 0.9720281381499506,
+          "realized_displacement_mean": 0.6645892683661667
+        },
+        "effect_spearman": 0.803325163949544,
+        "effect_spearman_std": 0.007786880856356038,
+        "epochs": 60,
+        "gain_within_r2": 0.8937009602122898,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.9230769230769231,
+              "direction_cosine_mean": 0.13415863879150974,
+              "direction_cosine_median": 0.22278195874690368,
+              "frac_positive": 0.5833333333333334,
+              "jacobian_r2_heldout_mean": 0.3340492371919764,
+              "n_directions": 12,
+              "overshoot": 2.287121703620073,
+              "passed": false,
+              "planned_step_mean": 0.22441773795264852,
+              "reachability_cosine_mean": 0.975780207142101,
+              "realized_displacement_mean": 0.5132706791488245
+            },
+            "effect_spearman": 0.8111120448059,
+            "gain_within_r2": 0.8983347287168711,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": -0.0734486941577552,
+              "direction_cosine_median": -0.2533747271908239,
+              "frac_positive": 0.38461538461538464,
+              "jacobian_r2_heldout_mean": 0.38184846307084663,
+              "n_directions": 13,
+              "overshoot": 2.4465109819741806,
+              "passed": false,
+              "planned_step_mean": 0.27164777647140786,
+              "reachability_cosine_mean": 0.9720281381499506,
+              "realized_displacement_mean": 0.6645892683661667
+            },
+            "effect_spearman": 0.795538283093188,
+            "gain_within_r2": 0.8890671917077085,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 2,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.6802016808415415,
+        "c6_std": 0.03784642665753013,
+        "control": {
+          "actionable_survival": 0.9230769230769231,
+          "direction_cosine_mean": 0.6423552541840114,
+          "direction_cosine_median": 0.701846269941652,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.36942131781083193,
+          "n_directions": 12,
+          "overshoot": 1.6574038564154483,
+          "passed": true,
+          "planned_step_mean": 0.12539373757718306,
+          "reachability_cosine_mean": 0.9947540044283366,
+          "realized_displacement_mean": 0.2078280642307699
+        },
+        "effect_spearman": 0.6726753940810125,
+        "effect_spearman_std": 0.014950637867252814,
+        "epochs": 60,
+        "gain_within_r2": 0.4576539380070897,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.875,
+              "direction_cosine_mean": 0.7180481074990717,
+              "direction_cosine_median": 0.7595093813076309,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.3216500354928435,
+              "n_directions": 14,
+              "overshoot": 1.4899679169658486,
+              "passed": true,
+              "planned_step_mean": 0.14010202747985603,
+              "reachability_cosine_mean": 0.9881375897715713,
+              "realized_displacement_mean": 0.20874752604685318
+            },
+            "effect_spearman": 0.6876260319482653,
+            "gain_within_r2": 0.4334207085723064,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.9230769230769231,
+              "direction_cosine_mean": 0.6423552541840114,
+              "direction_cosine_median": 0.701846269941652,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.36942131781083193,
+              "n_directions": 12,
+              "overshoot": 1.6574038564154483,
+              "passed": true,
+              "planned_step_mean": 0.12539373757718306,
+              "reachability_cosine_mean": 0.9947540044283366,
+              "realized_displacement_mean": 0.2078280642307699
+            },
+            "effect_spearman": 0.6577247562137597,
+            "gain_within_r2": 0.481887167441873,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 3,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.3078192816351645,
+        "c6_std": 0.03347793264168522,
+        "control": {
+          "actionable_survival": 0.6,
+          "direction_cosine_mean": 0.3412972142768497,
+          "direction_cosine_median": 0.1369519164663258,
+          "frac_positive": 0.6666666666666666,
+          "jacobian_r2_heldout_mean": 0.37830500216498153,
+          "n_directions": 9,
+          "overshoot": 2.715081789293766,
+          "passed": true,
+          "planned_step_mean": 0.1783266771348371,
+          "reachability_cosine_mean": 0.9863070191654926,
+          "realized_displacement_mean": 0.48417151363406524
+        },
+        "effect_spearman": 0.8016623099575668,
+        "effect_spearman_std": 0.005597286316817274,
+        "epochs": 60,
+        "gain_within_r2": 0.8757087896513227,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.6,
+              "direction_cosine_mean": 0.2743413489934793,
+              "direction_cosine_median": 0.22250571672749328,
+              "frac_positive": 0.5555555555555556,
+              "jacobian_r2_heldout_mean": 0.2775502636427459,
+              "n_directions": 9,
+              "overshoot": 2.546974942796756,
+              "passed": false,
+              "planned_step_mean": 0.1509312937935855,
+              "reachability_cosine_mean": 0.9873885198714168,
+              "realized_displacement_mean": 0.3844182233761578
+            },
+            "effect_spearman": 0.807259596274384,
+            "gain_within_r2": 0.8604345132088572,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.6,
+              "direction_cosine_mean": 0.3412972142768497,
+              "direction_cosine_median": 0.1369519164663258,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.37830500216498153,
+              "n_directions": 9,
+              "overshoot": 2.715081789293766,
+              "passed": true,
+              "planned_step_mean": 0.1783266771348371,
+              "reachability_cosine_mean": 0.9863070191654926,
+              "realized_displacement_mean": 0.48417151363406524
+            },
+            "effect_spearman": 0.7960650236407495,
+            "gain_within_r2": 0.8909830660937881,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 4,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.3548914118615133,
+        "c6_std": 0.045898728681717155,
+        "control": {
+          "actionable_survival": 0.375,
+          "direction_cosine_mean": 0.30899268317979617,
+          "direction_cosine_median": 0.7003642397395712,
+          "frac_positive": 0.6666666666666666,
+          "jacobian_r2_heldout_mean": 0.30222987180482813,
+          "n_directions": 6,
+          "overshoot": 1.0021350144873542,
+          "passed": true,
+          "planned_step_mean": 0.1721586692104904,
+          "reachability_cosine_mean": 0.9975672771948659,
+          "realized_displacement_mean": 0.17252623046337842
+        },
+        "effect_spearman": 0.7574175806610719,
+        "effect_spearman_std": 0.01592796425557258,
+        "epochs": 60,
+        "gain_within_r2": 0.7962494359333181,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.9375,
+              "direction_cosine_mean": 0.4007901405432305,
+              "direction_cosine_median": 0.45708562973994,
+              "frac_positive": 0.8,
+              "jacobian_r2_heldout_mean": 0.2701474613077924,
+              "n_directions": 15,
+              "overshoot": 1.6059435633177361,
+              "passed": true,
+              "planned_step_mean": 0.13533443379948445,
+              "reachability_cosine_mean": 0.976744944261774,
+              "realized_displacement_mean": 0.21733946285553232
+            },
+            "effect_spearman": 0.7414896164054994,
+            "gain_within_r2": 0.8068023627334648,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.375,
+              "direction_cosine_mean": 0.30899268317979617,
+              "direction_cosine_median": 0.7003642397395712,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.30222987180482813,
+              "n_directions": 6,
+              "overshoot": 1.0021350144873542,
+              "passed": true,
+              "planned_step_mean": 0.1721586692104904,
+              "reachability_cosine_mean": 0.9975672771948659,
+              "realized_displacement_mean": 0.17252623046337842
+            },
+            "effect_spearman": 0.7733455449166445,
+            "gain_within_r2": 0.7856965091331714,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 5,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.19587199920612453,
+        "c6_std": 0.12639112559003873,
+        "control": {
+          "actionable_survival": 0.75,
+          "direction_cosine_mean": 0.0694808736160858,
+          "direction_cosine_median": 0.28075883919715344,
+          "frac_positive": 0.5833333333333334,
+          "jacobian_r2_heldout_mean": 0.283930553022076,
+          "n_directions": 12,
+          "overshoot": 2.366166290027691,
+          "passed": false,
+          "planned_step_mean": 0.1968494518106594,
+          "reachability_cosine_mean": 0.9693424106172324,
+          "realized_displacement_mean": 0.4657785370848127
+        },
+        "effect_spearman": 0.714699199355791,
+        "effect_spearman_std": 0.0027038256096268976,
+        "epochs": 60,
+        "gain_within_r2": 0.487144646440497,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.8666666666666667,
+              "direction_cosine_mean": 0.32226312479616326,
+              "direction_cosine_median": 0.28297309267276793,
+              "frac_positive": 0.7692307692307693,
+              "jacobian_r2_heldout_mean": 0.20408307384812105,
+              "n_directions": 13,
+              "overshoot": 3.3281693468833566,
+              "passed": true,
+              "planned_step_mean": 0.197673335646927,
+              "reachability_cosine_mean": 0.9842605244038636,
+              "realized_displacement_mean": 0.6578903363962876
+            },
+            "effect_spearman": 0.7174030249654179,
+            "gain_within_r2": 0.36983160733390497,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.75,
+              "direction_cosine_mean": 0.0694808736160858,
+              "direction_cosine_median": 0.28075883919715344,
+              "frac_positive": 0.5833333333333334,
+              "jacobian_r2_heldout_mean": 0.283930553022076,
+              "n_directions": 12,
+              "overshoot": 2.366166290027691,
+              "passed": false,
+              "planned_step_mean": 0.1968494518106594,
+              "reachability_cosine_mean": 0.9693424106172324,
+              "realized_displacement_mean": 0.4657785370848127
+            },
+            "effect_spearman": 0.7119953737461641,
+            "gain_within_r2": 0.604457685547089,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 6,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.22001530873004432,
+        "c6_std": 0.11995778062372377,
+        "control": {
+          "actionable_survival": 0.6666666666666666,
+          "direction_cosine_mean": 0.10005752810632054,
+          "direction_cosine_median": 0.10735553871016054,
+          "frac_positive": 0.625,
+          "jacobian_r2_heldout_mean": 0.25489110138047044,
+          "n_directions": 8,
+          "overshoot": 0.7807271397535614,
+          "passed": false,
+          "planned_step_mean": 0.18595288817141586,
+          "reachability_cosine_mean": 0.9904579602344703,
+          "realized_displacement_mean": 0.14517846651098337
+        },
+        "effect_spearman": 0.15326996509648438,
+        "effect_spearman_std": 0.18614127962166388,
+        "epochs": 60,
+        "gain_within_r2": 0.05815077836352939,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.7333333333333333,
+              "direction_cosine_mean": 0.3399730893537681,
+              "direction_cosine_median": 0.47111447683207824,
+              "frac_positive": 0.8181818181818182,
+              "jacobian_r2_heldout_mean": 0.14342483571984446,
+              "n_directions": 11,
+              "overshoot": 1.1658312771805817,
+              "passed": true,
+              "planned_step_mean": 0.2021819673651441,
+              "reachability_cosine_mean": 0.9640093106489037,
+              "realized_displacement_mean": 0.23571006123618862
+            },
+            "effect_spearman": 0.33941124471814826,
+            "gain_within_r2": 0.07543724634335636,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.6666666666666666,
+              "direction_cosine_mean": 0.10005752810632054,
+              "direction_cosine_median": 0.10735553871016054,
+              "frac_positive": 0.625,
+              "jacobian_r2_heldout_mean": 0.25489110138047044,
+              "n_directions": 8,
+              "overshoot": 0.7807271397535614,
+              "passed": false,
+              "planned_step_mean": 0.18595288817141586,
+              "reachability_cosine_mean": 0.9904579602344703,
+              "realized_displacement_mean": 0.14517846651098337
+            },
+            "effect_spearman": -0.03287131452517952,
+            "gain_within_r2": 0.04086431038370242,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 7,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.47998704521419183,
+        "c6_std": 0.031053297329867446,
+        "control": {
+          "actionable_survival": 0.9285714285714286,
+          "direction_cosine_mean": 0.5110403425440593,
+          "direction_cosine_median": 0.6618798084533626,
+          "frac_positive": 0.7692307692307693,
+          "jacobian_r2_heldout_mean": 0.3167356054597941,
+          "n_directions": 13,
+          "overshoot": 2.349338070016151,
+          "passed": true,
+          "planned_step_mean": 0.1351155393329416,
+          "reachability_cosine_mean": 0.9847924616374879,
+          "realized_displacement_mean": 0.31743208040564436
+        },
+        "effect_spearman": 0.754130207293801,
+        "effect_spearman_std": 0.011749933381507982,
+        "epochs": 60,
+        "gain_within_r2": 0.8330000397261499,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.4489337478843244,
+              "direction_cosine_median": 0.6239089686273651,
+              "frac_positive": 0.7142857142857143,
+              "jacobian_r2_heldout_mean": 0.31131016602989864,
+              "n_directions": 14,
+              "overshoot": 1.4829416265541306,
+              "passed": true,
+              "planned_step_mean": 0.15030402338649237,
+              "reachability_cosine_mean": 0.9949368461031346,
+              "realized_displacement_mean": 0.2228920929183951
+            },
+            "effect_spearman": 0.765880140675309,
+            "gain_within_r2": 0.8161870904307804,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.9285714285714286,
+              "direction_cosine_mean": 0.5110403425440593,
+              "direction_cosine_median": 0.6618798084533626,
+              "frac_positive": 0.7692307692307693,
+              "jacobian_r2_heldout_mean": 0.3167356054597941,
+              "n_directions": 13,
+              "overshoot": 2.349338070016151,
+              "passed": true,
+              "planned_step_mean": 0.1351155393329416,
+              "reachability_cosine_mean": 0.9847924616374879,
+              "realized_displacement_mean": 0.31743208040564436
+            },
+            "effect_spearman": 0.742380273912293,
+            "gain_within_r2": 0.8498129890215192,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 8,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.35248321139065447,
+        "c6_std": 0.18184529012083167,
+        "control": {
+          "actionable_survival": 1.0,
+          "direction_cosine_mean": 0.5343285015114861,
+          "direction_cosine_median": 0.6201013549765823,
+          "frac_positive": 0.8666666666666667,
+          "jacobian_r2_heldout_mean": 0.2136089324085235,
+          "n_directions": 15,
+          "overshoot": 0.8811410074515541,
+          "passed": true,
+          "planned_step_mean": 0.22188089784603768,
+          "reachability_cosine_mean": 0.9813338263676353,
+          "realized_displacement_mean": 0.195508357862313
+        },
+        "effect_spearman": 0.3668150029615121,
+        "effect_spearman_std": 0.06503527084260624,
+        "epochs": 60,
+        "gain_within_r2": 0.12000850084827314,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.6666666666666666,
+              "direction_cosine_mean": 0.17063792126982283,
+              "direction_cosine_median": 0.1588031291016281,
+              "frac_positive": 0.6,
+              "jacobian_r2_heldout_mean": 0.23304693532087156,
+              "n_directions": 10,
+              "overshoot": 0.939072505055116,
+              "passed": false,
+              "planned_step_mean": 0.23174126099657438,
+              "reachability_cosine_mean": 0.9552787085446963,
+              "realized_displacement_mean": 0.21762184648868454
+            },
+            "effect_spearman": 0.30177973211890585,
+            "gain_within_r2": 0.09174619291346398,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 1.0,
+              "direction_cosine_mean": 0.5343285015114861,
+              "direction_cosine_median": 0.6201013549765823,
+              "frac_positive": 0.8666666666666667,
+              "jacobian_r2_heldout_mean": 0.2136089324085235,
+              "n_directions": 15,
+              "overshoot": 0.8811410074515541,
+              "passed": true,
+              "planned_step_mean": 0.22188089784603768,
+              "reachability_cosine_mean": 0.9813338263676353,
+              "realized_displacement_mean": 0.195508357862313
+            },
+            "effect_spearman": 0.43185027380411833,
+            "gain_within_r2": 0.1482708087830823,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 9,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.2642615896487748,
+        "c6_std": 0.10026252621999349,
+        "control": {
+          "actionable_survival": 0.6,
+          "direction_cosine_mean": 0.1639990634287813,
+          "direction_cosine_median": 0.17998641530617238,
+          "frac_positive": 0.5555555555555556,
+          "jacobian_r2_heldout_mean": 0.41553460757611627,
+          "n_directions": 9,
+          "overshoot": 2.190203653550484,
+          "passed": false,
+          "planned_step_mean": 0.16288549353329304,
+          "reachability_cosine_mean": 0.9906248352849882,
+          "realized_displacement_mean": 0.35675240304699213
+        },
+        "effect_spearman": 0.7066727589939936,
+        "effect_spearman_std": 0.0043852698788584,
+        "epochs": 60,
+        "gain_within_r2": 0.6029827432414637,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.8571428571428571,
+              "direction_cosine_mean": 0.36452411586876826,
+              "direction_cosine_median": 0.6691759691627308,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.25122720144431854,
+              "n_directions": 12,
+              "overshoot": 2.5772959928127785,
+              "passed": true,
+              "planned_step_mean": 0.17640484850375268,
+              "reachability_cosine_mean": 0.9662732556195612,
+              "realized_displacement_mean": 0.45464750916146707
+            },
+            "effect_spearman": 0.7022874891151352,
+            "gain_within_r2": 0.5788228779550686,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.6,
+              "direction_cosine_mean": 0.1639990634287813,
+              "direction_cosine_median": 0.17998641530617238,
+              "frac_positive": 0.5555555555555556,
+              "jacobian_r2_heldout_mean": 0.41553460757611627,
+              "n_directions": 9,
+              "overshoot": 2.190203653550484,
+              "passed": false,
+              "planned_step_mean": 0.16288549353329304,
+              "reachability_cosine_mean": 0.9906248352849882,
+              "realized_displacement_mean": 0.35675240304699213
+            },
+            "effect_spearman": 0.711058028872852,
+            "gain_within_r2": 0.6271426085278589,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 10,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.21539604859735034,
+        "c6_std": 0.07798256202873523,
+        "control": {
+          "actionable_survival": 0.5333333333333333,
+          "direction_cosine_mean": 0.1374134865686151,
+          "direction_cosine_median": 0.20062769807624506,
+          "frac_positive": 0.5,
+          "jacobian_r2_heldout_mean": 0.2503421995336979,
+          "n_directions": 8,
+          "overshoot": 1.3370694077112213,
+          "passed": false,
+          "planned_step_mean": 0.19864327493708211,
+          "reachability_cosine_mean": 0.961074851084599,
+          "realized_displacement_mean": 0.26559984596594166
+        },
+        "effect_spearman": 0.13677756797306528,
+        "effect_spearman_std": 0.4505966462221427,
+        "epochs": 60,
+        "gain_within_r2": 0.5910284371895984,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.5714285714285714,
+              "direction_cosine_mean": 0.29337861062608556,
+              "direction_cosine_median": 0.48635368094080206,
+              "frac_positive": 0.75,
+              "jacobian_r2_heldout_mean": 0.22236928861956598,
+              "n_directions": 8,
+              "overshoot": 1.9035977820248804,
+              "passed": false,
+              "planned_step_mean": 0.17777620564451244,
+              "reachability_cosine_mean": 0.9497177172925424,
+              "realized_displacement_mean": 0.3384143907616929
+            },
+            "effect_spearman": 0.587374214195208,
+            "gain_within_r2": 0.5932809154168397,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.5333333333333333,
+              "direction_cosine_mean": 0.1374134865686151,
+              "direction_cosine_median": 0.20062769807624506,
+              "frac_positive": 0.5,
+              "jacobian_r2_heldout_mean": 0.2503421995336979,
+              "n_directions": 8,
+              "overshoot": 1.3370694077112213,
+              "passed": false,
+              "planned_step_mean": 0.19864327493708211,
+              "reachability_cosine_mean": 0.961074851084599,
+              "realized_displacement_mean": 0.26559984596594166
+            },
+            "effect_spearman": -0.3138190782490774,
+            "gain_within_r2": 0.5887759589623572,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 11,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.574482081897329,
+        "c6_std": 0.12059757978443508,
+        "control": {
+          "actionable_survival": 0.6,
+          "direction_cosine_mean": 0.4538845021128939,
+          "direction_cosine_median": 0.5071547536684469,
+          "frac_positive": 1.0,
+          "jacobian_r2_heldout_mean": 0.3183782529286653,
+          "n_directions": 9,
+          "overshoot": 2.2852608761513875,
+          "passed": true,
+          "planned_step_mean": 0.21960700039930192,
+          "reachability_cosine_mean": 0.9797939539257613,
+          "realized_displacement_mean": 0.5018592861414868
+        },
+        "effect_spearman": 0.2955972254769815,
+        "effect_spearman_std": 0.00985550785161099,
+        "epochs": 60,
+        "gain_within_r2": -0.027798737264304374,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.875,
+              "direction_cosine_mean": 0.695079661681764,
+              "direction_cosine_median": 0.7781245993314116,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.18071211757500133,
+              "n_directions": 14,
+              "overshoot": 1.113660729404258,
+              "passed": true,
+              "planned_step_mean": 0.22620346613557482,
+              "reachability_cosine_mean": 0.9729718332489412,
+              "realized_displacement_mean": 0.25191391709031563
+            },
+            "effect_spearman": 0.30545273332859246,
+            "gain_within_r2": -0.009562226313528432,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.6,
+              "direction_cosine_mean": 0.4538845021128939,
+              "direction_cosine_median": 0.5071547536684469,
+              "frac_positive": 1.0,
+              "jacobian_r2_heldout_mean": 0.3183782529286653,
+              "n_directions": 9,
+              "overshoot": 2.2852608761513875,
+              "passed": true,
+              "planned_step_mean": 0.21960700039930192,
+              "reachability_cosine_mean": 0.9797939539257613,
+              "realized_displacement_mean": 0.5018592861414868
+            },
+            "effect_spearman": 0.2857417176253705,
+            "gain_within_r2": -0.046035248215080316,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 12,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.44517749551116004,
+        "c6_std": 0.0044416623650233855,
+        "control": {
+          "actionable_survival": 0.7272727272727273,
+          "direction_cosine_mean": 0.4407358331461366,
+          "direction_cosine_median": 0.7147752120627817,
+          "frac_positive": 0.875,
+          "jacobian_r2_heldout_mean": 0.14926099759938777,
+          "n_directions": 8,
+          "overshoot": 2.991046930028621,
+          "passed": true,
+          "planned_step_mean": 0.18234566526409277,
+          "reachability_cosine_mean": 0.9854797402222488,
+          "realized_displacement_mean": 0.5454044422921912
+        },
+        "effect_spearman": 0.8836462980449075,
+        "effect_spearman_std": 0.0050590097243348175,
+        "epochs": 60,
+        "gain_within_r2": 0.8302341087136196,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.5,
+              "direction_cosine_mean": 0.4496191578761834,
+              "direction_cosine_median": 0.6331885340569239,
+              "frac_positive": 0.6666666666666666,
+              "jacobian_r2_heldout_mean": 0.25275398769856666,
+              "n_directions": 6,
+              "overshoot": 1.17297351239463,
+              "passed": true,
+              "planned_step_mean": 0.12127235212776281,
+              "reachability_cosine_mean": 0.9808504647284112,
+              "realized_displacement_mean": 0.14224925683166034
+            },
+            "effect_spearman": 0.8887053077692423,
+            "gain_within_r2": 0.8845165523269131,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.7272727272727273,
+              "direction_cosine_mean": 0.4407358331461366,
+              "direction_cosine_median": 0.7147752120627817,
+              "frac_positive": 0.875,
+              "jacobian_r2_heldout_mean": 0.14926099759938777,
+              "n_directions": 8,
+              "overshoot": 2.991046930028621,
+              "passed": true,
+              "planned_step_mean": 0.18234566526409277,
+              "reachability_cosine_mean": 0.9854797402222488,
+              "realized_displacement_mean": 0.5454044422921912
+            },
+            "effect_spearman": 0.8785872883205726,
+            "gain_within_r2": 0.775951665100326,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 13,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.3792441414076079,
+        "c6_std": 0.18887025806764532,
+        "control": {
+          "actionable_survival": 0.5333333333333333,
+          "direction_cosine_mean": 0.1903738833399626,
+          "direction_cosine_median": 0.10953655633815684,
+          "frac_positive": 0.75,
+          "jacobian_r2_heldout_mean": 0.3361660242576896,
+          "n_directions": 8,
+          "overshoot": 2.438156252869919,
+          "passed": false,
+          "planned_step_mean": 0.2086657744547893,
+          "reachability_cosine_mean": 0.9790608131539601,
+          "realized_displacement_mean": 0.5087597627468887
+        },
+        "effect_spearman": 0.7307686419491699,
+        "effect_spearman_std": 0.008732548711213373,
+        "epochs": 60,
+        "gain_within_r2": 0.7387886308559,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.6923076923076923,
+              "direction_cosine_mean": 0.5681143994752532,
+              "direction_cosine_median": 0.616999858686506,
+              "frac_positive": 0.8888888888888888,
+              "jacobian_r2_heldout_mean": 0.3460578055524342,
+              "n_directions": 9,
+              "overshoot": 1.9289382252056686,
+              "passed": true,
+              "planned_step_mean": 0.2091456752035969,
+              "reachability_cosine_mean": 0.9896168895094569,
+              "realized_displacement_mean": 0.4034290875366674
+            },
+            "effect_spearman": 0.7220360932379566,
+            "gain_within_r2": 0.7279882918894971,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.5333333333333333,
+              "direction_cosine_mean": 0.1903738833399626,
+              "direction_cosine_median": 0.10953655633815684,
+              "frac_positive": 0.75,
+              "jacobian_r2_heldout_mean": 0.3361660242576896,
+              "n_directions": 8,
+              "overshoot": 2.438156252869919,
+              "passed": false,
+              "planned_step_mean": 0.2086657744547893,
+              "reachability_cosine_mean": 0.9790608131539601,
+              "realized_displacement_mean": 0.5087597627468887
+            },
+            "effect_spearman": 0.7395011906603833,
+            "gain_within_r2": 0.7495889698223027,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 14,
+        "smooth_weight": 0.1
+      },
+      {
+        "c6_mean": 0.5418608342530636,
+        "c6_std": 0.11361025161611402,
+        "control": {
+          "actionable_survival": 0.875,
+          "direction_cosine_mean": 0.6554710858691777,
+          "direction_cosine_median": 0.8234178678833639,
+          "frac_positive": 0.8571428571428571,
+          "jacobian_r2_heldout_mean": 0.1711594416729881,
+          "n_directions": 14,
+          "overshoot": 1.363004697887059,
+          "passed": true,
+          "planned_step_mean": 0.20451967022159678,
+          "reachability_cosine_mean": 0.9789763175408114,
+          "realized_displacement_mean": 0.27876127132234846
+        },
+        "effect_spearman": 0.1708808267797236,
+        "effect_spearman_std": 0.041959950922300523,
+        "epochs": 60,
+        "gain_within_r2": -2.217976574525416,
+        "per_replicate": [
+          {
+            "control": {
+              "actionable_survival": 0.9285714285714286,
+              "direction_cosine_mean": 0.42825058263694965,
+              "direction_cosine_median": 0.6346248518688357,
+              "frac_positive": 0.8461538461538461,
+              "jacobian_r2_heldout_mean": 0.270509613393989,
+              "n_directions": 13,
+              "overshoot": 1.6582041236713632,
+              "passed": true,
+              "planned_step_mean": 0.24289393744283733,
+              "reachability_cosine_mean": 0.984239677820846,
+              "realized_displacement_mean": 0.40276772868248695
+            },
+            "effect_spearman": 0.21284077770202414,
+            "gain_within_r2": -2.733138915877463,
+            "replicate": 0
+          },
+          {
+            "control": {
+              "actionable_survival": 0.875,
+              "direction_cosine_mean": 0.6554710858691777,
+              "direction_cosine_median": 0.8234178678833639,
+              "frac_positive": 0.8571428571428571,
+              "jacobian_r2_heldout_mean": 0.1711594416729881,
+              "n_directions": 14,
+              "overshoot": 1.363004697887059,
+              "passed": true,
+              "planned_step_mean": 0.20451967022159678,
+              "reachability_cosine_mean": 0.9789763175408114,
+              "realized_displacement_mean": 0.27876127132234846
+            },
+            "effect_spearman": 0.1289208758574231,
+            "gain_within_r2": -1.7028142331733687,
+            "replicate": 1
+          }
+        ],
+        "replicates": 2,
+        "seed": 15,
+        "smooth_weight": 0.1
+      }
+    ]
+  }
+}

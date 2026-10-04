@@ -1,0 +1,203 @@
+[ctrl] 16 seeds | arm 1: epochs [5, 60] | arm 2: smooth [0.1] at epochs=60
+wandb: W&B API key is configured. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: setting up run tdmw9zz9
+wandb: Tracking run with wandb version 0.23.0
+wandb: Run data is saved locally in /home/pavt1024/vinuni/robotics/ldva/wandb/run-20261004_094542-tdmw9zz9
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run E0ctrl3-controllability
+wandb: ⭐️ View project at https://wandb.ai/hust_edu_vn/ldva
+wandb: 🚀 View run at https://wandb.ai/hust_edu_vn/ldva/runs/tdmw9zz9
+[ctrl]   seed 0 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.332+/-0.022 gain_r2=+0.023 | C6=+0.700+/-0.140 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.741+/-0.018 gain_r2=+0.463 | C6=+0.236+/-0.241 (n=2)
+[ctrl]   seed 0 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.755+/-0.011 gain_r2=+0.441 | C6=+0.620+/-0.020 (n=2)
+[ctrl]   seed 1 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.429+/-0.038 gain_r2=+0.085 | C6=+0.426+/-0.001 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.582+/-0.039 gain_r2=+0.025 | C6=+0.633+/-0.049 (n=2)
+[ctrl]   seed 1 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.516+/-0.006 gain_r2=-0.001 | C6=+0.349+/-0.206 (n=2)
+[ctrl]   seed 2 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.626+/-0.010 gain_r2=+0.630 | C6=+0.403+/-0.167 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.815+/-0.040 gain_r2=+0.862 | C6=+0.156+/-0.160 (n=2)
+[ctrl]   seed 2 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.803+/-0.008 gain_r2=+0.894 | C6=+0.030+/-0.104 (n=2)
+[ctrl]   seed 3 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.360+/-0.125 gain_r2=+0.083 | C6=+0.815+/-0.022 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.677+/-0.007 gain_r2=+0.300 | C6=+0.653+/-0.001 (n=2)
+[ctrl]   seed 3 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.673+/-0.015 gain_r2=+0.458 | C6=+0.680+/-0.038 (n=2)
+[ctrl]   seed 4 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.635+/-0.026 gain_r2=+0.516 | C6=+0.581+/-0.038 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.805+/-0.001 gain_r2=+0.870 | C6=+0.101+/-0.002 (n=2)
+[ctrl]   seed 4 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.802+/-0.006 gain_r2=+0.876 | C6=+0.308+/-0.033 (n=2)
+[ctrl]   seed 5 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.518+/-0.006 gain_r2=+0.369 | C6=+0.910+/-0.080 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.769+/-0.008 gain_r2=+0.772 | C6=+0.353+/-0.174 (n=2)
+[ctrl]   seed 5 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.757+/-0.016 gain_r2=+0.796 | C6=+0.355+/-0.046 (n=2)
+[ctrl]   seed 6 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.643+/-0.002 gain_r2=+0.446 | C6=+0.180+/-0.045 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.708+/-0.002 gain_r2=+0.491 | C6=-0.022+/-0.237 (n=2)
+[ctrl]   seed 6 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.715+/-0.003 gain_r2=+0.487 | C6=+0.196+/-0.126 (n=2)
+[ctrl]   seed 7 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=-0.070+/-0.031 gain_r2=-0.003 | C6=+0.826+/-0.015 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.185+/-0.031 gain_r2=-0.025 | C6=+0.452+/-0.288 (n=2)
+[ctrl]   seed 7 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.153+/-0.186 gain_r2=+0.058 | C6=+0.220+/-0.120 (n=2)
+[ctrl]   seed 8 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.637+/-0.020 gain_r2=+0.420 | C6=+0.586+/-0.059 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.776+/-0.002 gain_r2=+0.735 | C6=+0.642+/-0.016 (n=2)
+[ctrl]   seed 8 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.754+/-0.012 gain_r2=+0.833 | C6=+0.480+/-0.031 (n=2)
+[ctrl]   seed 9 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.126+/-0.102 gain_r2=-0.118 | C6=+0.485+/-0.060 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.200+/-0.015 gain_r2=+0.071 | C6=+0.468+/-0.072 (n=2)
+[ctrl]   seed 9 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.367+/-0.065 gain_r2=+0.120 | C6=+0.352+/-0.182 (n=2)
+[ctrl]   seed 10 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.392+/-0.033 gain_r2=+0.296 | C6=+0.690+/-0.038 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.695+/-0.002 gain_r2=+0.608 | C6=+0.258+/-0.263 (n=2)
+[ctrl]   seed 10 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.707+/-0.004 gain_r2=+0.603 | C6=+0.264+/-0.100 (n=2)
+[ctrl]   seed 11 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.059+/-0.000 gain_r2=+0.004 | C6=+0.635+/-0.178 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.567+/-0.064 gain_r2=+0.622 | C6=+0.116+/-0.110 (n=2)
+[ctrl]   seed 11 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.137+/-0.451 gain_r2=+0.591 | C6=+0.215+/-0.078 (n=2)
+[ctrl]   seed 12 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.074+/-0.118 gain_r2=-0.006 | C6=+0.639+/-0.306 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.515+/-0.023 gain_r2=-0.009 | C6=+0.354+/-0.254 (n=2)
+[ctrl]   seed 12 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.296+/-0.010 gain_r2=-0.028 | C6=+0.574+/-0.121 (n=2)
+[ctrl]   seed 13 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.778+/-0.027 gain_r2=+0.369 | C6=+0.665+/-0.035 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.892+/-0.007 gain_r2=+0.776 | C6=+0.437+/-0.004 (n=2)
+[ctrl]   seed 13 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.884+/-0.005 gain_r2=+0.830 | C6=+0.445+/-0.004 (n=2)
+[ctrl]   seed 14 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.472+/-0.095 gain_r2=+0.399 | C6=+0.347+/-0.107 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.737+/-0.003 gain_r2=+0.743 | C6=+0.495+/-0.105 (n=2)
+[ctrl]   seed 14 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.731+/-0.009 gain_r2=+0.739 | C6=+0.379+/-0.189 (n=2)
+[ctrl]   seed 15 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.088+/-0.002 gain_r2=+0.021 | C6=+0.683+/-0.087 (n=2)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.172+/-0.052 gain_r2=-7.548 | C6=+0.517+/-0.097 (n=2)
+[ctrl]   seed 15 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0.1   -> effect_spearman=+0.171+/-0.042 gain_r2=-2.218 | C6=+0.542+/-0.114 (n=2)
+
+========================================================================================================
+FIT vs METADATA CONTROLLABILITY
+========================================================================================================
+
+  ARM 1 - epochs sweep (fit varies, data fixed)
+   seed   epochs   eff.sprm   gain_r2   C6 mean   C6 std   n
+      0        5     +0.332    +0.023    +0.700    0.140   2
+      0       60     +0.741    +0.463    +0.236    0.241   2
+      1        5     +0.429    +0.085    +0.426    0.001   2
+      1       60     +0.582    +0.025    +0.633    0.049   2
+      2        5     +0.626    +0.630    +0.403    0.167   2
+      2       60     +0.815    +0.862    +0.156    0.160   2
+      3        5     +0.360    +0.083    +0.815    0.022   2
+      3       60     +0.677    +0.300    +0.653    0.001   2
+      4        5     +0.635    +0.516    +0.581    0.038   2
+      4       60     +0.805    +0.870    +0.101    0.002   2
+      5        5     +0.518    +0.369    +0.910    0.080   2
+      5       60     +0.769    +0.772    +0.353    0.174   2
+      6        5     +0.643    +0.446    +0.180    0.045   2
+      6       60     +0.708    +0.491    -0.022    0.237   2
+      7        5     -0.070    -0.003    +0.826    0.015   2
+      7       60     +0.185    -0.025    +0.452    0.288   2
+      8        5     +0.637    +0.420    +0.586    0.059   2
+      8       60     +0.776    +0.735    +0.642    0.016   2
+      9        5     +0.126    -0.118    +0.485    0.060   2
+      9       60     +0.200    +0.071    +0.468    0.072   2
+     10        5     +0.392    +0.296    +0.690    0.038   2
+     10       60     +0.695    +0.608    +0.258    0.263   2
+     11        5     +0.059    +0.004    +0.635    0.178   2
+     11       60     +0.567    +0.622    +0.116    0.110   2
+     12        5     +0.074    -0.006    +0.639    0.306   2
+     12       60     +0.515    -0.009    +0.354    0.254   2
+     13        5     +0.778    +0.369    +0.665    0.035   2
+     13       60     +0.892    +0.776    +0.437    0.004   2
+     14        5     +0.472    +0.399    +0.347    0.107   2
+     14       60     +0.737    +0.743    +0.495    0.105   2
+     15        5     +0.088    +0.021    +0.683    0.087   2
+     15       60     +0.172    -7.548    +0.517    0.097   2
+    within-seed rho(fit, C6): mean +nan   negative in 0/0 seeds
+
+  ARM 2 - L_smooth sweep at max epochs
+   seed   smooth   eff.sprm   gain_r2   C6 mean   C6 std   n
+      0      0.1     +0.755    +0.441    +0.620    0.020   2
+      1      0.1     +0.516    -0.001    +0.349    0.206   2
+      2      0.1     +0.803    +0.894    +0.030    0.104   2
+      3      0.1     +0.673    +0.458    +0.680    0.038   2
+      4      0.1     +0.802    +0.876    +0.308    0.033   2
+      5      0.1     +0.757    +0.796    +0.355    0.046   2
+      6      0.1     +0.715    +0.487    +0.196    0.126   2
+      7      0.1     +0.153    +0.058    +0.220    0.120   2
+      8      0.1     +0.754    +0.833    +0.480    0.031   2
+      9      0.1     +0.367    +0.120    +0.352    0.182   2
+     10      0.1     +0.707    +0.603    +0.264    0.100   2
+     11      0.1     +0.137    +0.591    +0.215    0.078   2
+     12      0.1     +0.296    -0.028    +0.574    0.121   2
+     13      0.1     +0.884    +0.830    +0.445    0.004   2
+     14      0.1     +0.731    +0.739    +0.379    0.189   2
+     15      0.1     +0.171    -2.218    +0.542    0.114   2
+    within-seed rho(fit, C6): mean +nan   negative in 0/0 seeds
+
+  PER-SEED CONTRAST  C6(high fit) - C6(low fit)   (16 seeds)
+   seed   fit lo   fit hi    C6 lo    C6 hi      dC6      SE     verdict
+      0   +0.332   +0.741   +0.700   +0.236   -0.465   0.197    tradeoff
+      1   +0.429   +0.582   +0.426   +0.633   +0.207   0.035    positive
+      2   +0.626   +0.815   +0.403   +0.156   -0.246   0.164  unresolved
+      3   +0.360   +0.677   +0.815   +0.653   -0.161   0.015    tradeoff
+      4   +0.635   +0.805   +0.581   +0.101   -0.480   0.027    tradeoff
+      5   +0.518   +0.769   +0.910   +0.353   -0.557   0.136    tradeoff
+      6   +0.643   +0.708   +0.180   -0.022   -0.202   0.171  unresolved
+      7   -0.070   +0.185   +0.826   +0.452   -0.374   0.204  unresolved
+      8   +0.637   +0.776   +0.586   +0.642   +0.057   0.043  unresolved
+      9   +0.126   +0.200   +0.485   +0.468   -0.017   0.066  unresolved
+     10   +0.392   +0.695   +0.690   +0.258   -0.432   0.188    tradeoff
+     11   +0.059   +0.567   +0.635   +0.116   -0.519   0.148    tradeoff
+     12   +0.074   +0.515   +0.639   +0.354   -0.285   0.281  unresolved
+     13   +0.778   +0.892   +0.665   +0.437   -0.228   0.025    tradeoff
+     14   +0.472   +0.737   +0.347   +0.495   +0.148   0.106  unresolved
+     15   +0.088   +0.172   +0.683   +0.517   -0.166   0.092  unresolved
+    resolved: 7 trade-off, 1 positive, 8 unresolved
+    mean dC6 -0.233 +/- 0.057 (SEM over seeds)   sign split 13neg/3pos
+
+  CONDITIONS (mean per group)
+  feature                tradeoff   positive   unresolved
+  fit_low                  +0.439     +0.429       +0.325
+  fit_high                 +0.735     +0.582       +0.514
+  fit_gain                 +0.296     +0.153       +0.189
+  c6_low                   +0.714     +0.426       +0.519
+  c6_high                  +0.308     +0.633       +0.383
+  gain_r2_high             +0.630     +0.025       -0.585
+  overshoot_high           +1.937     +1.647       +1.968
+  n_directions_high       +11.714    +13.000      +11.500
+
+  CONTRAST VERDICT: both directions occur: trade-off in 7, positive in 1 - see the conditions table for what separates them
+
+--------------------------------------------------------------------------------------------------------
+  VERDICT: insufficient data
+  report: runs/E0_ctrl3/diagnose_controllability.json
+========================================================================================================
+
+wandb: uploading artifact run-tdmw9zz9-smooth_sweep; updating run metadata
+wandb: uploading artifact run-tdmw9zz9-smooth_sweep; uploading output.log; uploading wandb-summary.json; uploading media/table/smooth_sweep_1_5a1e8ad1930283ab9fd1.table.json; uploading history steps 0-1, summary, console lines 79-178
+wandb: uploading artifact run-tdmw9zz9-smooth_sweep; uploading output.log; uploading config.yaml
+wandb: uploading artifact run-tdmw9zz9-smooth_sweep
+wandb: uploading data
+wandb: 
+wandb: Run summary:
+wandb: analysis/verdict insufficient data
+wandb: 
+wandb: 🚀 View run E0ctrl3-controllability at: https://wandb.ai/hust_edu_vn/ldva/runs/tdmw9zz9
+wandb: ⭐️ View project at: https://wandb.ai/hust_edu_vn/ldva
+wandb: Synced 5 W&B file(s), 2 media file(s), 4 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261004_094542-tdmw9zz9/logs

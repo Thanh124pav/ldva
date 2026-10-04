@@ -27,6 +27,91 @@ class CalibrationRecord:
     extra: dict = field(default_factory=dict)
 
 
+def candidate_allocations(
+    n_directions: int,
+    budget: int,
+    n_mixed: int,
+    rng: np.random.Generator,
+    exclude: set[tuple[int, ...]] | None = None,
+    include_concentrated: bool = True,
+) -> list[tuple[int, ...]]:
+    """Allocations that span the range of *realized* gain, not just predicted.
+
+    Scoring calibration only on the allocations the solvers chose is
+    range-restricted and heavily duplicated: on one E0 seed nine of fifteen
+    candidates shared a single allocation, so nine records carried one
+    predicted value while their realized gains spanned 29 units, and Spearman
+    was decided by that scatter.
+
+    The obvious repair - add Dirichlet-random allocations - does not work on
+    its own, and measuring it is what showed why. On E0 seed 0 fourteen such
+    allocations produced realized gains inside [+0.393, +0.542], a span of
+    0.149 against the planner picks' 0.56, because `floor(w * budget)` plus
+    remainder-filling almost always spreads the budget across directions and
+    *mixed allocations all perform alike*. They widened the predicted range
+    while carrying no realized signal, dragging the correlation from +0.300 to
+    -0.025: a diluted statistic, not a finding about the model.
+
+    What discriminates is **concentration**. Putting the whole budget on one
+    direction is where realized gain actually varies, and the two worst
+    planner picks on that seed were exactly such one-hot allocations (realized
+    -0.035 and +0.087). The candidate set is therefore the one-hot allocations
+    plus mixed ones, which covers both ends of the realized range.
+    """
+    out: set[tuple[int, ...]] = set()
+    exclude = exclude or set()
+
+    def _add(alloc: np.ndarray) -> None:
+        key = tuple(int(x) for x in alloc)
+        if key not in exclude:
+            out.add(key)
+
+    if include_concentrated:
+        # the whole budget on a single direction: the informative extremes
+        for a in range(n_directions):
+            alloc = np.zeros(n_directions, dtype=np.int64)
+            alloc[a] = budget
+            _add(alloc)
+
+    target = len(out) + max(n_mixed, 0)
+    tries, max_tries = 0, 40 * max(n_mixed, 1)
+    while len(out) < target and tries < max_tries:
+        tries += 1
+        w = rng.dirichlet(np.full(n_directions, rng.choice([0.1, 0.3, 1.0, 3.0])))
+        alloc = np.floor(w * budget).astype(np.int64)
+        for _ in range(budget - int(alloc.sum())):
+            alloc[rng.integers(n_directions)] += 1
+        _add(alloc)
+    return sorted(out)
+
+
+def random_allocations(
+    n_directions: int,
+    budget: int,
+    n: int,
+    rng: np.random.Generator,
+    exclude: set[tuple[int, ...]] | None = None,
+) -> list[tuple[int, ...]]:
+    """Mixed allocations only. Prefer `candidate_allocations`, which also
+    includes the concentrated ones that carry the realized signal."""
+    return candidate_allocations(
+        n_directions, budget, n, rng, exclude, include_concentrated=False)
+
+
+def deduplicate(records: list[CalibrationRecord]) -> list[CalibrationRecord]:
+    """One record per distinct allocation, keeping the first seen.
+
+    Duplicates carry identical predicted values by construction, so they add
+    tied ranks and no information while letting the realized scatter within one
+    allocation drive the correlation.
+    """
+    seen: dict[tuple[int, ...], CalibrationRecord] = {}
+    for r in records:
+        key = tuple(int(x) for x in np.asarray(r.allocation).reshape(-1))
+        seen.setdefault(key, r)
+    return list(seen.values())
+
+
 def calibration_report(records: list[CalibrationRecord], top_k: int = 3) -> dict:
     """Rank and absolute agreement between predicted and realized gain."""
     if len(records) < 2:

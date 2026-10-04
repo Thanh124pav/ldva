@@ -117,7 +117,7 @@ class Fixture:
         self.ref = self.ckpts[len(self.ckpts) // 2]
 
     def train(self, latent_dim=None, weights=None, records=None,
-              use_ckpt_id=False, **model_kw):
+              use_ckpt_id=False, seed_offset=0, **model_kw):
         """Train a data model variant and return its final validation metrics.
 
         `use_ckpt_id=True` is only for ablation 6 (PLAN.md 20): everywhere else
@@ -132,6 +132,20 @@ class Fixture:
             ds = ContextDataset(self.store, records)
             train_ds, val_ds = ds.split(0.2, seed=self.seeds["context"], by=split_by)
             table = EffectProfileTable(train_ds.records, len(self.store), min_shared=2)
+        # Seed BEFORE constructing the model. `DataModelTrainer` calls
+        # `set_seed` in its own __init__, which is after this point, so the
+        # model's initial weights were being drawn from whatever state the
+        # global torch RNG happened to be in - i.e. they depended on every
+        # arm that had run before. Two arms with identical configs then gave
+        # different results: in the controllability sweep the same
+        # (epochs=60, smooth=0.01) cell came out at C6 +0.471 in one arm and
+        # +0.622 in another, a 0.15 gap that is the same size as the effects
+        # being measured. Every ablation built on this Fixture was affected.
+        # `seed_offset` is how a caller asks for an independent *replicate* of
+        # the same configuration. With the seeding above making training fully
+        # deterministic, repeated calls are byte-identical, so measuring the
+        # run-to-run spread needs this to be varied explicitly.
+        set_seed(self.seeds["latent"] + seed_offset)
         model = LDVADataModel(LDVAConfig.build(
             obs_dim=self.store.obs_dim, act_dim=self.store.act_dim,
             chunk_len=self.store.chunk_len, meta_dim=self.store.meta_dim,
@@ -143,7 +157,7 @@ class Fixture:
         model, hist = train_datamodel(
             model, train_ds, val_ds,
             TrainConfig(epochs=cfg["epochs"], eval_every=cfg["epochs"],
-                        seed=self.seeds["latent"],
+                        seed=self.seeds["latent"] + seed_offset,
                         weights=weights or LossWeights(1.0, 1.0, 0.1, 0.01)),
             table)
         final = {k[4:]: v for k, v in hist[-1].items() if k.startswith("val/")}

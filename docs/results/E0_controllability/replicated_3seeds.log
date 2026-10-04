@@ -1,0 +1,14 @@
+[ctrl] 3 seeds | arm 1: epochs [5, 60] | arm 2: smooth [0.0, 0.1] at epochs=60
+wandb: W&B API key is configured. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: Tracking run with wandb version 0.23.0
+wandb: Run data is saved locally in /home/pavt1024/vinuni/robotics/ldva/wandb/run-20261004_092946-t3abqpg9
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run E0ctrl2-controllability
+wandb: ⭐️ View project at https://wandb.ai/hust_edu_vn/ldva
+wandb: 🚀 View run at https://wandb.ai/hust_edu_vn/ldva/runs/t3abqpg9
+[ctrl]   seed 0 - arm 1: fit sweep (everything else fixed)
+[ctrl]     epochs=5   smooth=0.01  -> effect_spearman=+0.295+/-0.072 gain_r2=+0.037 | C6=+0.593+/-0.183 (n=4)
+[ctrl]     epochs=60  smooth=0.01  -> effect_spearman=+0.745+/-0.023 gain_r2=+0.468 | C6=+0.442+/-0.268 (n=4)
+[ctrl]   seed 0 - arm 2: smoothness sweep at epochs=60
+[ctrl]     epochs=60  smooth=0     -> effect_spearman=+0.730+/-0.029 gain_r2=+0.433 | C6=+0.503+/-0.204 (n=4)
