@@ -85,7 +85,11 @@ class Fixture:
         self.cfg = cfg
         self.seeds = SeedBundle(seed)
         set_seed(self.seeds["latent"])
-        self.world = SyntheticWorld(SyntheticConfig(seed=self.seeds["env"]))
+        # `cfg["world"]` lets a diagnostic vary the generative map itself -
+        # map kind, kernel bandwidth, latent width - which is what the
+        # richness-versus-reach question requires.
+        self.world = SyntheticWorld(SyntheticConfig(
+            seed=self.seeds["env"], **dict(cfg.get("world", {}))))
         rng = self.seeds.rng("env")
         self.store = self.world.build_store(
             cfg["n_samples"], rng, regions=self.world.default_initial_regions())

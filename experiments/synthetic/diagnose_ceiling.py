@@ -58,6 +58,7 @@ from ldva.acquisition.metadata_mapper import (  # noqa: E402
 )
 from ldva.analysis.direction_validation import (  # noqa: E402
     direction_specificity,
+    estimate_reach,
     participation_ratio,
 )
 from ldva.analysis.wandb_logger import make_logger  # noqa: E402
@@ -137,8 +138,10 @@ def pipeline_specificity(fx, z: np.ndarray, cfg: dict, label: str,
     if not directions:
         out["error"] = "no directions"
         return out
-    mapper = MetadataMapper(
-        fx.world.metadata_spec, MetadataMapperConfig(seed=fx.seeds["acquisition"]))
+    mcfg = MetadataMapperConfig(seed=fx.seeds["acquisition"])
+    if cfg.get("max_step_norm") is not None:
+        mcfg.max_step_norm = float(cfg["max_step_norm"])
+    mapper = MetadataMapper(fx.world.metadata_spec, mcfg)
     mapper.fit(z, fx.store.metadata, clusters)
     directions, act = filter_actionable_directions(
         directions, mapper, fx.store.metadata, ActionabilityConfig())
@@ -184,16 +187,41 @@ def pipeline_specificity(fx, z: np.ndarray, cfg: dict, label: str,
         "n_directions": len(directions),
         "actionable_survival": act["survival_rate"],
         "cos_desired_mean": float(np.nanmean(cos)) if cos else float("nan"),
+        "specificity_gap": spec.get("gap_mean", float("nan")),
+        "specificity_gap_sem": spec.get("gap_sem", float("nan")),
         "specificity_z": spec.get("z_score_mean", float("nan")),
         "null_abs_mean": spec.get("null_abs_mean", float("nan")),
         "frac_above_2sd": spec.get("frac_directions_above_2sd", float("nan")),
-        "passes_criterion6": bool(spec.get("z_score_mean", float("nan")) >= 2.0),
+        "passes_criterion6": bool(spec.get("gap_mean", float("nan")) >= 0.3),
     })
     return out
 
 
 def run_seed(fx, cfg: dict, args, say) -> dict:
     out: dict = {"seed": fx.seeds.base}
+
+    # ---- reach: how far a LOCAL LINEAR map can be trusted ------------------
+    # Measured in *normalised* metadata units, because that is the unit the
+    # mapper's trust region (`max_step_norm`) is expressed in. A step longer
+    # than the reach asks the linear solve for something the linearisation
+    # cannot deliver, which is the failure the hand-picked constant was hiding.
+    spec = fx.world.metadata_spec
+    centre_norm = spec.normalize(fx.store.metadata).mean(0)
+
+    def _encode_norm(m_norm):
+        return fx.world.latent_from_metadata(spec.denormalize(np.clip(m_norm, 0, 1)))
+
+    reach = estimate_reach(_encode_norm, centre_norm,
+                           rng=np.random.default_rng(fx.seeds["acquisition"] + 7))
+    out["reach"] = reach
+    if args.auto_step and reach["reach"] is not None:
+        cfg = dict(cfg)
+        cfg["max_step_norm"] = float(reach["reach"])
+    elif args.max_step_norm is not None:
+        cfg = dict(cfg)
+        cfg["max_step_norm"] = float(args.max_step_norm)
+    say(f"    reach (normalised metadata) = {reach['reach']}"
+        f"   mapper step = {cfg.get('max_step_norm', 'default 0.35')}")
 
     # ---- ceiling 1: what the labels contain --------------------------------
     out["effect_labels"] = effect_label_dimensionality(fx.records, len(fx.store))
@@ -212,7 +240,7 @@ def run_seed(fx, cfg: dict, args, say) -> dict:
         )
         r = out["true_latent"]
         say(f"    TRUE latent  : eff_dim={r['participation_ratio']:.2f} "
-            f"z={r.get('specificity_z', float('nan')):+.2f} "
+            f"gap={r.get('specificity_gap', float('nan')):+.3f} "
             f"cos={r.get('cos_desired_mean', float('nan')):+.3f} "
             f"pass={r.get('passes_criterion6')}")
     else:
@@ -228,7 +256,7 @@ def run_seed(fx, cfg: dict, args, say) -> dict:
     )
     r = out["metadata_space"]
     say(f"    METADATA     : eff_dim={r['participation_ratio']:.2f} "
-        f"z={r.get('specificity_z', float('nan')):+.2f} "
+        f"gap={r.get('specificity_gap', float('nan')):+.3f} "
         f"cos={r.get('cos_desired_mean', float('nan')):+.3f} "
         f"dir_set_dim={r.get('direction_set_participation_ratio', float('nan')):.2f} "
         f"pair_cos={r.get('mean_abs_pairwise_cos', float('nan')):.3f} "
@@ -247,7 +275,7 @@ def run_seed(fx, cfg: dict, args, say) -> dict:
     out["learned"]["effect_spearman"] = final.get("effect_spearman", float("nan"))
     r = out["learned"]
     say(f"    LEARNED      : eff_dim={r['participation_ratio']:.2f} "
-        f"z={r.get('specificity_z', float('nan')):+.2f} "
+        f"gap={r.get('specificity_gap', float('nan')):+.3f} "
         f"cos={r.get('cos_desired_mean', float('nan')):+.3f} "
         f"pass={r.get('passes_criterion6')}")
     return out
@@ -258,6 +286,18 @@ def main() -> dict:
     ap.add_argument("--seeds", type=str, default="0,1,2,3,4,5")
     ap.add_argument("--delta-scale", type=float, default=0.4)
     ap.add_argument("--n-per-anchor", type=int, default=24)
+    ap.add_argument("--map-kind", type=str, default=None, choices=("tanh", "rff"))
+    ap.add_argument("--rff-omega", type=float, default=None,
+                    help="inverse kernel bandwidth: higher is richer but has a "
+                         "shorter reach, so the mapper's step must shrink with it")
+    ap.add_argument("--world-latent-dim", type=int, default=None)
+    ap.add_argument("--world-obs-dim", type=int, default=None)
+    ap.add_argument("--max-step-norm", type=float, default=None,
+                    help="mapper trust region; 'auto' behaviour is to take the "
+                         "measured reach, see --auto-step")
+    ap.add_argument("--auto-step", action="store_true",
+                    help="set the mapper trust region from the measured reach "
+                         "instead of a hand-picked constant")
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--out", type=str, default="runs/diagnose_ceiling")
     ap.add_argument("--wandb", action="store_true")
@@ -270,9 +310,22 @@ def main() -> dict:
     if args.quick:
         cfg.update(mod.QUICK)
     cfg["label_lr"] = 0.3
+    world: dict = {}
+    if args.map_kind:
+        world["map_kind"] = args.map_kind
+    if args.rff_omega is not None:
+        world["rff_omega"] = args.rff_omega
+    if args.world_latent_dim is not None:
+        world["latent_dim"] = args.world_latent_dim
+    if args.world_obs_dim is not None:
+        world["obs_dim"] = args.world_obs_dim
+    if world:
+        cfg["world"] = world
 
     seeds = [int(x) for x in args.seeds.split(",") if x.strip()]
     say = lambda m: print(f"[ceiling] {m}", flush=True)  # noqa: E731
+    if world:
+        say(f"world overrides: {world}")
     say(f"{len(seeds)} seeds: effect-label dim, true-latent ceiling, "
         f"metadata ceiling, learned model")
 
@@ -316,7 +369,7 @@ def main() -> dict:
                   ["seed", "representation", "eff_dim", "specificity_z",
                    "cos_desired", "n_directions", "passes"],
                   [[r["seed"], k, r[k].get("participation_ratio", float("nan")),
-                    r[k].get("specificity_z", float("nan")),
+                    r[k].get("specificity_gap", float("nan")),
                     r[k].get("cos_desired_mean", float("nan")),
                     r[k].get("n_directions", 0), r[k].get("passes_criterion6", False)]
                    for r in rows if "error" not in r
@@ -348,31 +401,31 @@ def analyse(rows: list[dict]) -> dict:
         float(eff_lbl.mean()) if eff_lbl.size else float("nan"))
     for key, name in (("true_latent", "true"), ("metadata_space", "metadata"),
                       ("learned", "learned")):
-        z = col(key, "specificity_z")
+        z = col(key, "specificity_gap")
         pr = col(key, "participation_ratio")
         cos = col(key, "cos_desired_mean")
         out[f"{name}_eff_dim_mean"] = float(pr.mean()) if pr.size else float("nan")
-        out[f"{name}_specificity_z_mean"] = float(z.mean()) if z.size else float("nan")
+        out[f"{name}_specificity_gap_mean"] = float(z.mean()) if z.size else float("nan")
         out[f"{name}_cos_mean"] = float(cos.mean()) if cos.size else float("nan")
         ds = col(key, "direction_set_participation_ratio")
         pc = col(key, "mean_abs_pairwise_cos")
         out[f"{name}_direction_set_dim_mean"] = (
             float(ds.mean()) if ds.size else float("nan"))
         out[f"{name}_pairwise_cos_mean"] = float(pc.mean()) if pc.size else float("nan")
-        out[f"{name}_n_pass"] = int(np.sum(z >= 2.0)) if z.size else 0
+        out[f"{name}_n_pass"] = int(np.sum(z >= 0.3)) if z.size else 0
         out[f"{name}_n"] = int(z.size)
 
-    tz = out.get("true_specificity_z_mean", float("nan"))
-    mz = out.get("metadata_specificity_z_mean", float("nan"))
-    lz = out.get("learned_specificity_z_mean", float("nan"))
-    if np.isfinite(tz) and tz < 2.0 and np.isfinite(mz) and mz < 2.0:
+    tz = out.get("true_specificity_gap_mean", float("nan"))
+    mz = out.get("metadata_specificity_gap_mean", float("nan"))
+    lz = out.get("learned_specificity_gap_mean", float("nan"))
+    if np.isfinite(tz) and tz < 0.3 and np.isfinite(mz) and mz < 0.3:
         verdict = ("BENCHMARK CEILING: even the world's true latents and the raw "
                    "metadata fail criterion 6, so it is not achievable on this "
                    "synthetic world regardless of the model")
-    elif np.isfinite(tz) and tz >= 2.0 and np.isfinite(lz) and lz < 2.0:
+    elif np.isfinite(tz) and tz >= 0.3 and np.isfinite(lz) and lz < 0.3:
         verdict = ("MODEL GAP: the true latents clear criterion 6 but the learned "
                    "encoding does not - the headroom is in the encoder")
-    elif np.isfinite(mz) and mz >= 2.0 and np.isfinite(tz) and tz < 2.0:
+    elif np.isfinite(mz) and mz >= 0.3 and np.isfinite(tz) and tz < 0.3:
         verdict = ("REPRESENTATION GAP: metadata-space directions are specific but "
                    "latent ones are not - the loss is in the encoding step")
     else:
@@ -387,7 +440,7 @@ def _print(rows: list[dict], a: dict, out_dir: Path) -> None:
     print("CEILINGS FOR CRITERION 6 (direction specificity, z >= 2 to pass)")
     print("=" * w)
     print(f"  {'seed':>5s} {'label dim':>10s} | {'representation':>14s} "
-          f"{'eff_dim':>9s} {'spec z':>9s} {'cos':>8s} {'n_dir':>6s} {'pass':>6s}")
+          f"{'eff_dim':>9s} {'spec gap':>9s} {'cos':>8s} {'n_dir':>6s} {'pass':>6s}")
     for r in rows:
         if "error" in r:
             print(f"  {r['seed']:>5d}  ERROR {r['error']}")
@@ -397,12 +450,12 @@ def _print(rows: list[dict], a: dict, out_dir: Path) -> None:
         for key, nm in (("true_latent", "true latent"),
                         ("metadata_space", "metadata"), ("learned", "learned")):
             d = r.get(key, {})
-            if not isinstance(d, dict) or "specificity_z" not in d:
+            if not isinstance(d, dict) or "specificity_gap" not in d:
                 continue
             lead = f"  {r['seed']:>5d} {ld:>10.2f} |" if first else f"  {'':>5s} {'':>10s} |"
             first = False
             print(f"{lead} {nm:>14s} {d.get('participation_ratio', float('nan')):>9.2f} "
-                  f"{d['specificity_z']:>+9.2f} "
+                  f"{d.get('specificity_gap', float('nan')):>+9.3f} "
                   f"{d.get('cos_desired_mean', float('nan')):>+8.3f} "
                   f"{d.get('n_directions', 0):>6d} "
                   f"{('YES' if d.get('passes_criterion6') else 'no'):>6s}")
@@ -413,7 +466,7 @@ def _print(rows: list[dict], a: dict, out_dir: Path) -> None:
         print(f"  {nm:>9s}: eff_dim {a.get(f'{nm}_eff_dim_mean', float('nan')):>5.2f}  "
               f"dir_set_dim {a.get(f'{nm}_direction_set_dim_mean', float('nan')):>5.2f}  "
               f"pair|cos| {a.get(f'{nm}_pairwise_cos_mean', float('nan')):>5.3f}  "
-              f"spec z {a.get(f'{nm}_specificity_z_mean', float('nan')):>+6.2f}  "
+              f"spec gap {a.get(f'{nm}_specificity_gap_mean', float('nan')):>+6.3f}  "
               f"cos {a.get(f'{nm}_cos_mean', float('nan')):>+6.3f}  "
               f"pass {a.get(f'{nm}_n_pass', 0)}/{a.get(f'{nm}_n', 0)}")
     print(f"\n  VERDICT: {a.get('verdict')}")

@@ -406,9 +406,10 @@ def main() -> dict:
     }
     say(f"metadata control: realized cosine mean={cos.mean():+.3f}, "
         f"{100*(cos>0).mean():.0f}% of directions move the right way")
-    say(f"  direction specificity: z={spec.get('z_score_mean', float('nan')):+.2f} "
-        f"vs the other candidates (>=2 = distinguishable), "
-        f"{100*spec.get('frac_directions_above_2sd', 0):.0f}% of directions clear 2sd; "
+    say(f"  direction specificity: gap={spec.get('gap_mean', float('nan')):+.3f}"
+        f"+/-{spec.get('gap_sem', float('nan')):.3f} vs the other candidates "
+        f"(>=0.3 = distinguishable), "
+        f"{100*spec.get('frac_directions_gap_positive', 0):.0f}% of directions positive; "
         f"latent effective dim={report['latent_participation_ratio']:.2f} "
         f"of {z_all.shape[1]}")
 
@@ -619,7 +620,7 @@ def _small_problem_check(objective, model, sampler, directions, pctx, cfg, seeds
 
 def _success_criteria(report: dict, solvers: dict, calib: list, cfg: dict) -> dict:
     """The six criteria of PLAN.md 14, each with the number behind it."""
-    spec_z = report.get("direction_specificity", {}).get("z_score_mean", float("nan"))
+    spec_gap = report.get("direction_specificity", {}).get("gap_mean", float("nan"))
     final = report["datamodel"]["final_val"]
     abl = report["ablations"]
     geo = report["latent_geometry"]
@@ -719,9 +720,11 @@ def _success_criteria(report: dict, solvers: dict, calib: list, cfg: dict) -> di
         # matches the direction that was requested better than one that was
         # not, which is the claim the acquisition loop actually relies on.
         "6_metadata_moves_latents": {
-            "specificity_z_score": spec_z,
-            "frac_directions_above_2sd": report.get("direction_specificity", {}).get(
-                "frac_directions_above_2sd", float("nan")),
+            "specificity_gap": spec_gap,
+            "specificity_gap_sem": report.get("direction_specificity", {}).get(
+                "gap_sem", float("nan")),
+            "frac_directions_gap_positive": report.get("direction_specificity", {}).get(
+                "frac_directions_gap_positive", float("nan")),
             "latent_effective_dim": report.get("latent_participation_ratio", float("nan")),
             "direction_cosine_mean": c6,
             "null_abs_mean": report.get("direction_specificity", {}).get(
@@ -729,10 +732,15 @@ def _success_criteria(report: dict, solvers: dict, calib: list, cfg: dict) -> di
             "frac_directions_positive": report["metadata_control"]["frac_directions_positive"],
             "reachability_cosine_mean": report["metadata_control"]["reachability_cosine_mean"],
             "jacobian_r2_heldout_mean": report["metadata_control"]["jacobian_r2_heldout_mean"],
-            "passed": bool(np.isfinite(spec_z) and spec_z >= 2.0),
-            "rule": "mean z-score of cos(desired, realized) against the other "
-                    "candidate directions >= 2 (raw cosine is uninterpretable "
-                    "when the latent space is collapsed)",
+            "passed": bool(np.isfinite(spec_gap) and spec_gap >= 0.3),
+            "rule": "mean gap cos(desired, realized) - mean|cos(desired, other "
+                    "candidates)| >= 0.3. A raw cosine is uninterpretable when "
+                    "the latent space is collapsed, and dividing by the null's "
+                    "spread (a z-score) breaks both when the directions are "
+                    "near-identical (the spread vanishes and z explodes) and "
+                    "when they are orthogonal (the spread also vanishes, but "
+                    "that is the best case). 0.3 is ~1.5x the measured "
+                    "replicate noise of the realized cosine (~0.2).",
         },
     }
 

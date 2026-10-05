@@ -189,17 +189,42 @@ def direction_specificity(
             continue
         null = np.asarray(null, dtype=np.float64)
         sd = float(null.std())
+        # The primary statistic is the GAP, in cosine units:
+        #
+        #     gap_i = cos(delta_i, v_i) - mean_j |cos(delta_i, v_j)|
+        #
+        # Dividing by the null's spread instead - a z-score - has two failure
+        # modes that a sweep exposed. When candidate directions are nearly
+        # identical the spread collapses and the z-score explodes (values of
+        # 2e8 were produced). When they are orthogonal the spread is also zero,
+        # but that is the *best* case, not a degenerate one. The null's spread
+        # is information about how diverse the direction set is; it is not the
+        # measurement noise, so it does not belong in the denominator.
+        #
+        # The gap handles every case in one scale: perfect execution of
+        # orthogonal directions gives 1.0 - 0.0 = 1.0; a collapsed space gives
+        # 0.988 - 0.985 = 0.003; and a direction realized *worse* than the
+        # alternatives gives a negative gap (measured: 0.232 - 0.660 = -0.43).
+        null_abs = float(np.abs(null).mean())
         rows.append({
             "direction_id": int(i),
             "cos_desired": cos_own,
             "null_mean": float(null.mean()),
-            "null_abs_mean": float(np.abs(null).mean()),
+            "null_abs_mean": null_abs,
             "null_std": sd,
-            "z_score": float((cos_own - null.mean()) / max(sd, 1e-9)),
+            "gap": float(cos_own - null_abs),
+            # capped: a near-orthogonal null sends the raw ratio to 1e12, which
+            # is why the gap and not the ratio is the criterion
+            "ratio": float(min(cos_own / max(null_abs, 1e-3), 1e3)),
+            # kept for reference; unreliable when `null_std` is small, which is
+            # why it is no longer the criterion
+            "z_score": float((cos_own - null.mean()) / sd) if sd > 1e-9 else float("nan"),
         })
     if not rows:
         return {"n_directions": 0, "z_score_mean": float("nan")}
     z = np.array([r["z_score"] for r in rows], dtype=np.float64)
+    gap = np.array([r["gap"] for r in rows], dtype=np.float64)
+    ratio = np.array([r["ratio"] for r in rows], dtype=np.float64)
     cos = np.array([r["cos_desired"] for r in rows], dtype=np.float64)
     nullabs = np.array([r["null_abs_mean"] for r in rows], dtype=np.float64)
     return {
@@ -207,9 +232,85 @@ def direction_specificity(
         "cos_desired_mean": float(np.nanmean(cos)),
         "null_abs_mean": float(np.nanmean(nullabs)),
         "cos_over_null": float(np.nanmean(cos) / max(np.nanmean(nullabs), 1e-9)),
-        "z_score_mean": float(np.nanmean(z)),
-        "z_score_sem": float(np.nanstd(z) / max(np.sqrt(len(z)), 1)),
-        "frac_directions_above_2sd": float(np.mean(z >= 2.0)),
+        # primary: the gap in cosine units
+        "gap_mean": float(np.nanmean(gap)),
+        "gap_sem": float(np.nanstd(gap) / max(np.sqrt(len(gap)), 1)),
+        "frac_directions_gap_positive": float(np.mean(gap > 0)),
+        "ratio_mean": float(np.nanmean(ratio[np.isfinite(ratio)]))
+        if np.isfinite(ratio).any() else float("nan"),
+        # reference only; see the note on `gap` above
+        "z_score_mean": (float(np.nanmean(z)) if np.isfinite(z).any()
+                         else float("nan")),
         "null": "permutation over the other candidate directions",
         "per_direction": rows,
+    }
+
+
+# ---- how far can a LOCAL LINEAR map be trusted? --------------------------
+
+
+def estimate_reach(
+    encode_fn,
+    centre: np.ndarray,
+    steps: tuple[float, ...] = (0.4, 0.2, 0.1, 0.05, 0.02, 0.01),
+    r2_threshold: float = 0.95,
+    n_probe: int = 400,
+    rng: np.random.Generator | None = None,
+) -> dict:
+    """Largest step over which the map is still linear to `r2_threshold`.
+
+    This is an empirical estimate of the manifold's **reach** (Federer;
+    Niyogi-Smale-Weinberger): the radius within which a curved manifold is well
+    approximated by its tangent space. It is the quantity that should set the
+    planner's step, because `MetadataMapper` solves `J delta_m ~ alpha v` with a
+    *local linear* `J` - a step longer than the reach asks that solve for
+    something the linearisation cannot deliver.
+
+    Why it matters here: richness and locality are not independently tunable.
+    Both are set by the map's curvature - for a random-Fourier map, by one
+    kernel bandwidth (Bochner) - so buying effective dimensions costs reach.
+    Measured on the synthetic world's metadata->latent map, with 3-dimensional
+    metadata:
+
+        omega   effective dim   reach (R^2 > 0.95)
+        0.5     2.05            <= 0.4
+        2.0     3.19            <= 0.1
+        8.0     14.40           <= 0.02
+
+    So a configuration can be rich *or* take long steps, and the step has to be
+    chosen from the measurement rather than fixed by hand. Compressing a rich
+    map back down does **not** recover reach: reach depends on how fast the
+    Jacobian turns with the *input*, and a fixed linear projection of the output
+    does not change that - measured, PCA from 32 to 3 dimensions moved local
+    R^2 only from 0.27 to 0.35 while destroying the richness (18.2 to 3.0
+    effective dimensions).
+
+    `steps` is scanned from large to small and the first passing value is
+    returned, so the result is the coarsest trustworthy step.
+    """
+    rng = rng or np.random.default_rng(0)
+    centre = np.asarray(centre, dtype=np.float64).reshape(-1)
+    d = centre.shape[0]
+    rows = []
+    reach = None
+    for eps in sorted(steps, reverse=True):
+        pts = centre + rng.uniform(-eps, eps, size=(n_probe, d))
+        y = np.asarray(encode_fn(pts), dtype=np.float64)
+        x = np.concatenate([pts - centre, np.ones((n_probe, 1))], axis=1)
+        coef, *_ = np.linalg.lstsq(x, y, rcond=None)
+        resid = y - x @ coef
+        denom = float(((y - y.mean(0)) ** 2).sum())
+        r2 = 1.0 - float((resid ** 2).sum()) / max(denom, 1e-12)
+        rows.append({"step": float(eps), "linear_r2": r2})
+        if reach is None and r2 >= r2_threshold:
+            reach = float(eps)
+    return {
+        "reach": reach,
+        "r2_threshold": r2_threshold,
+        "per_step": rows,
+        "largest_step_tested": float(max(steps)),
+        "smallest_step_tested": float(min(steps)),
+        # None means even the smallest step tested was too curved; the caller
+        # must not silently fall back to a default in that case
+        "reach_below_tested_range": reach is None,
     }

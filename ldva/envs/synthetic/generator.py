@@ -39,8 +39,67 @@ class SyntheticConfig:
     obs_noise: float = 0.35
     #: expert action noise; sets the irreducible validation loss
     act_noise: float = 0.05
-    #: scale of the metadata->latent network's first layer (locality knob)
-    map_scale: float = 1.2
+    #: Scale of the metadata->latent network's first layer: the locality knob,
+    #: and also what controls how much tanh saturates.
+    #:
+    #: Lowered from 1.2 after measuring that saturation was compressing the
+    #: generative map. Mean |tanh| rises 0.31 -> 0.78 as this goes 0.3 -> 2.4,
+    #: and the true latents' effective dimensionality falls with it, so the
+    #: world generated latents *poorer* than the metadata they came from (1.31
+    #: vs 2.26) - inverting the premise the benchmark exists to test.
+    #:
+    #: 0.3 with `well_conditioned_map` gives latent effective dimensionality
+    #: 1.94 against metadata's 2.26 (ratio 0.86). Locality survives: one global
+    #: linear map still explains only R^2 = 0.737 of the variation over the box,
+    #: and the local Jacobian at D_0 differs from the global one by 1.34 in
+    #: relative Frobenius norm, so the metadata mapper still faces a genuinely
+    #: curved map rather than a linear one.
+    map_scale: float = 0.3
+    #: Make the metadata->latent map locally isometric at the centre of the box.
+    #:
+    #: With a random `W2` the composition `W2 tanh(W1 m)` is badly conditioned:
+    #: its singular values are spread, so one latent direction carries most of
+    #: the variance. Measured consequence - the world's own true latents came
+    #: out at 1.38 effective dimensions from metadata carrying 2.27, i.e. the
+    #: generative map *compressed*. On such a world latent-space directions are
+    #: intrinsically less distinguishable than metadata-space ones, which
+    #: inverts the premise the benchmark exists to test: direction specificity
+    #: scored +2.22 in metadata space and +1.87 on the true latents.
+    #:
+    #: Note this is NOT about `latent_dim`: the image of a `meta_dim`
+    #: dimensional metadata space is at most `meta_dim` dimensional whatever
+    #: the latent width is, so raising `latent_dim` cannot fix it. The same
+    #: reasoning is already applied one step later, where `C` is orthonormalised
+    #: "so every latent direction maps to a distinguishable policy-space
+    #: direction" - this applies it to the step before.
+    well_conditioned_map: bool = True
+    #: Form of the metadata->latent map.
+    #:
+    #: `"tanh"` is `W2 tanh(W1 m + b1)`, the original. Measured limitation: its
+    #: effective dimensionality caps at ~2.0 whatever `map_scale` is, because
+    #: raising the scale *saturates* tanh rather than curving it, and a flat map
+    #: loses variation instead of spreading it. The world then generates latents
+    #: poorer than the metadata they came from, which inverts the premise the
+    #: benchmark exists to test.
+    #:
+    #: `"rff"` is random Fourier features, `[cos(m W), sin(m W)]` with
+    #: `W ~ N(0, rff_omega^2)`. By Bochner's theorem this approximates a
+    #: shift-invariant kernel whose bandwidth is `1/rff_omega`, so a single
+    #: parameter controls both how rich the geometry is and how local it is -
+    #: which is why those two properties trade off rather than being
+    #: independently tunable. Measured from 3-d metadata: effective
+    #: dimensionality 2.0 at omega=1, 3.2 at omega=2, 14.4 at omega=8.
+    #:
+    #: Note the intrinsic dimension stays 3 whatever the map (Whitney): the
+    #: extra dimensions are *extrinsic*, produced by curvature. That is also
+    #: why `latent_dim` alone cannot buy them - the map has to be curved AND
+    #: the output wide enough to hold the result.
+    map_kind: str = "tanh"
+    #: inverse kernel bandwidth for `map_kind="rff"`; higher = richer but less
+    #: locally linear, so the mapper's usable step shrinks with it
+    rff_omega: float = 2.0
+    #: number of random frequencies; the feature count is twice this
+    rff_features: int = 16
     seed: int = 0
 
 
@@ -80,10 +139,36 @@ class SyntheticWorld:
         if len(self.metadata_spec) != c.meta_dim:
             raise ValueError("meta_dim > number of declared metadata fields")
 
-        # metadata -> latent: u = W2 tanh(W1 m_norm + b1)
-        self.W1 = rng.normal(scale=c.map_scale, size=(c.hidden_dim, c.meta_dim))
-        self.b1 = rng.normal(scale=0.3, size=c.hidden_dim)
-        self.W2 = rng.normal(scale=1.0 / np.sqrt(c.hidden_dim), size=(c.latent_dim, c.hidden_dim))
+        if c.map_kind not in ("tanh", "rff"):
+            raise ValueError(
+                f"unknown map_kind {c.map_kind!r}; expected 'tanh' or 'rff'")
+        if c.obs_dim < c.latent_dim:
+            raise ValueError(
+                f"obs_dim ({c.obs_dim}) must be >= latent_dim ({c.latent_dim}): "
+                "the latent->observation map is orthonormalised, so a latent "
+                "wider than the observation cannot be embedded without "
+                "collapsing directions that the planner would then be unable "
+                "to distinguish")
+
+        # metadata -> latent
+        if c.map_kind == "rff":
+            # [cos(m Omega), sin(m Omega)] -> W2 -> latent. Curvature comes from
+            # the frequencies, not from a saturating activation.
+            self.Omega = rng.normal(
+                scale=c.rff_omega, size=(c.meta_dim, c.rff_features))
+            self.W1, self.b1 = None, None
+            self.W2 = rng.normal(
+                scale=1.0 / np.sqrt(2 * c.rff_features),
+                size=(c.latent_dim, 2 * c.rff_features))
+        else:
+            # u = W2 tanh(W1 m_norm + b1)
+            self.Omega = None
+            self.W1 = rng.normal(scale=c.map_scale, size=(c.hidden_dim, c.meta_dim))
+            self.b1 = rng.normal(scale=0.3, size=c.hidden_dim)
+            self.W2 = rng.normal(
+                scale=1.0 / np.sqrt(c.hidden_dim), size=(c.latent_dim, c.hidden_dim))
+        if c.well_conditioned_map:
+            self.W2 = self._condition_W2()
 
         # latent -> observation mean, kept well conditioned so every latent
         # direction maps to a distinguishable policy-space direction
@@ -96,21 +181,72 @@ class SyntheticWorld:
         self._rng_seed = c.seed
 
     # ---- generative chain ---------------------------------------------
-    def latent_from_metadata(self, m: np.ndarray) -> np.ndarray:
-        """True latent factors u = f(m); accepts (d,) or (n, d)."""
+    def _condition_W2(self, n_mc: int = 4096) -> np.ndarray:
+        """Rescale `W2` so latent variance is spread evenly over the box.
+
+        Whitens `u` against its **empirical covariance over the metadata box**,
+        estimated by Monte Carlo:  `M = U S^-1/2 U^T` from the eigendecomposition
+        of `cov(u)`, plus the identity off `span(U)` so `W2` stays full rank.
+        After this, `cov(u)` is isotropic on the box, so no single latent
+        direction carries most of the variation.
+
+        **A first attempt whitened the Jacobian at the box centre and did
+        nothing** (latent effective dimensionality 1.15 -> 1.11), because D_0
+        occupies a *corner* sub-box: conditioning the map at the centre leaves
+        it ill-conditioned where the data actually is. Matching the covariance
+        over the region that gets sampled is what the property requires.
+
+        Only conditioning changes. The tanh nonlinearity is untouched, so the
+        map stays curved away from any given point and the local Jacobian
+        remains an approximation - which is the thing the metadata mapper is
+        supposed to cope with.
+        """
+        c = self.cfg
+        rng = np.random.default_rng(c.seed + 9176)
+        lo, hi = self.metadata_spec.low, self.metadata_spec.high
+        m = rng.uniform(lo, hi, size=(n_mc, len(self.metadata_spec)))
+        u = self._features(m) @ self.W2.T
+        cov = np.cov(u - u.mean(0), rowvar=False)
+        w, v = np.linalg.eigh(np.atleast_2d(cov))
+        keep = w > 1e-12 * max(w.max(), 1e-30)
+        if not np.any(keep):
+            return self.W2
+        vk, wk = v[:, keep], w[keep]
+        trans = vk @ np.diag(wk ** -0.5) @ vk.T + (
+            np.eye(c.latent_dim) - vk @ vk.T)
+        return trans @ self.W2
+
+    def _features(self, m: np.ndarray) -> np.ndarray:
+        """The map's hidden features, before the final linear layer."""
         m = np.atleast_2d(np.asarray(m, dtype=np.float64))
         m_norm = self.metadata_spec.normalize(m) * 2.0 - 1.0  # centre on 0
-        h = np.tanh(m_norm @ self.W1.T + self.b1)
-        return h @ self.W2.T
+        if self.cfg.map_kind == "rff":
+            proj = m_norm @ self.Omega
+            return np.concatenate([np.cos(proj), np.sin(proj)], axis=1)
+        return np.tanh(m_norm @ self.W1.T + self.b1)
+
+    def latent_from_metadata(self, m: np.ndarray) -> np.ndarray:
+        """True latent factors u = f(m); accepts (d,) or (n, d)."""
+        return self._features(m) @ self.W2.T
 
     def latent_jacobian(self, m: np.ndarray) -> np.ndarray:
         """Analytic d u / d m at a single `m`; the ground truth the mapper fits."""
         m = np.asarray(m, dtype=np.float64).reshape(-1)
         m_norm = self.metadata_spec.normalize(m) * 2.0 - 1.0
-        pre = self.W1 @ m_norm + self.b1
-        d_tanh = 1.0 - np.tanh(pre) ** 2
         # chain through the normalization: d m_norm / d m = 2 / span
         d_norm = 2.0 / self.metadata_spec.span
+        if self.cfg.map_kind == "rff":
+            # features are [cos(m O), sin(m O)], so d/dm is
+            # [-sin(m O) * O, cos(m O) * O] stacked the same way
+            proj = m_norm @ self.Omega
+            d_feat = np.concatenate(
+                [-np.sin(proj)[:, None] * self.Omega.T,
+                 np.cos(proj)[:, None] * self.Omega.T],
+                axis=0,
+            )
+            return (self.W2 @ d_feat) * d_norm
+        pre = self.W1 @ m_norm + self.b1
+        d_tanh = 1.0 - np.tanh(pre) ** 2
         return (self.W2 * d_tanh) @ self.W1 * d_norm
 
     def generate_chunks(

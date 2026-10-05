@@ -221,15 +221,16 @@ def test_stage0_criterion6_rejects_a_high_cosine_in_a_collapsed_space(stage0_mod
                              "frac_directions_positive": 1.0,
                              "reachability_cosine_mean": 0.98,
                              "jacobian_r2_heldout_mean": 0.4},
-        "direction_specificity": {"z_score_mean": 1.3,
-                                  "frac_directions_above_2sd": 0.0,
+        # cosine 0.91 but the alternatives score 0.88: a gap of 0.03
+        "direction_specificity": {"gap_mean": 0.03, "gap_sem": 0.01,
+                                  "frac_directions_gap_positive": 0.5,
                                   "null_abs_mean": 0.88},
         "latent_participation_ratio": 1.04,
     }
     crit = stage0_mod._success_criteria(report, {}, [], {})["6_metadata_moves_latents"]
     assert crit["passed"] is False, "a collapsed space must not pass on its raw cosine"
     assert crit["direction_cosine_mean"] == 0.91
-    assert crit["specificity_z_score"] == 1.3
+    assert crit["specificity_gap"] == 0.03
 
 
 def test_stage0_criteria_are_the_six_of_setup_30(stage0_mod):
@@ -253,7 +254,8 @@ def test_stage0_criteria_are_the_six_of_setup_30(stage0_mod):
         # criterion 6 is scored on specificity against the other candidate
         # directions, not on the raw cosine: with a collapsed latent space the
         # old 0.3 threshold sat below chance
-        "direction_specificity": {"z_score_mean": 3.1, "frac_directions_above_2sd": 0.8,
+        "direction_specificity": {"gap_mean": 0.55, "gap_sem": 0.05,
+                                  "frac_directions_gap_positive": 0.9,
                                   "null_abs_mean": 0.2},
         "latent_participation_ratio": 6.0,
     }
@@ -288,8 +290,8 @@ def test_stage0_criteria_fail_when_the_evidence_is_absent(stage0_mod):
                              "frac_directions_positive": 0.1,
                              "reachability_cosine_mean": 0.2,
                              "jacobian_r2_heldout_mean": 0.0},
-        "direction_specificity": {"z_score_mean": float("nan"),
-                                  "frac_directions_above_2sd": 0.0,
+        "direction_specificity": {"gap_mean": float("nan"), "gap_sem": 0.0,
+                                  "frac_directions_gap_positive": 0.0,
                                   "null_abs_mean": 0.9},
         "latent_participation_ratio": 1.1,
     }
