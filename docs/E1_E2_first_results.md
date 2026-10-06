@@ -263,6 +263,83 @@ frame change the gate's statistic does not control for. Any next pass that
 tightens C5/C6 as currently written without changing either will measure
 noise or drift, not method quality.
 
+## Warm-start pass: C6 drift confirmed on MetaWorld, fit-vs-controllability confirmed on DMC
+
+Implemented and ran the "train the encoder normally then freeze it" variant
+proposed above. CLI flag `--warm-start` on `experiments/run_acquisition_loop.py`:
+round 0 trains for `--warm-start-epochs` (default `2 * epochs`), the
+`SampleEncoder` and `PolicyContextEncoder` are frozen for all later rounds,
+and only the context encoder, readout and set-utility head retrain on the
+expanded dataset. Reports under
+[`results/E1_E2_warmstart/`](results/E1_E2_warmstart/).
+
+Pooled numbers, 192 round-points each:
+
+| | E1 DMC baseline | E1 DMC warm-start | E2 MW baseline | E2 MW warm-start |
+|---|---|---|---|---|
+| C1 ratio | 1.836 | 1.891 | 1.023 | **1.143** |
+| C5 spearman | +0.045 | +0.010 | +0.083 | +0.001 |
+| C6 mean cos | −0.085 | **−0.144** | −0.150 | **+0.002** |
+
+C6 split by round, which is the diagnostic that matters for frame-drift:
+
+| | base r0 | base r1 | base r2 | base r3 | ws r0 | ws r1 | ws r2 | ws r3 |
+|---|---|---|---|---|---|---|---|---|
+| **E1 DMC**   | **+0.196** | −0.133 | −0.243 | −0.161 | +0.048 | −0.174 | −0.225 | −0.226 |
+| **E2 MW**    | −0.153 | −0.033 | −0.176 | −0.237 | −0.237 | **+0.252** | **+0.133** | −0.141 |
+
+### What the pattern says
+
+- **E2 MW**: the frame-drift story is confirmed. Rounds 1-2 move from −0.03 /
+  −0.18 under the retrain-every-round baseline to **+0.25 / +0.13** when the
+  frame is held fixed. The direction planned in round 0 remains executable in
+  rounds 1-2 if the encoder has not moved. Round 3 benefits less, suggesting
+  the frozen frame starts to drift from the data distribution after enough
+  acquisition rounds. C1 also improves (1.02 → 1.14), consistent with the
+  longer warm-start giving a better round-0 encoder on a problem the baseline
+  40 epochs underfits.
+
+- **E1 DMC**: warm-start *hurts* at every round, including round 0 (the one
+  round with no drift to fix). Round 0 cosine falls from **+0.196 to +0.048**
+  when the encoder trains for 80 epochs instead of 40. This is a failure in
+  the opposite direction from drift: on a 1-task 2D-metadata problem the
+  40-epoch encoder is already converged, and the extra 40 epochs push it into
+  a frame that fits the effect labels better but controls direction worse.
+  That is the fit-vs-controllability trade-off `E0_criteria_resolution.md`
+  reported and `E0_root_cause.md` partly retracted — it is real at this
+  scale, visible when the measurement is round 0 in isolation rather than
+  pooled across a drifting series.
+
+### Reading these together
+
+C6 fails on real envs for two separate reasons, which the two environments
+separate for us:
+
+1. **Frame drift** between rounds, visible on MW where warm-start recovers
+   +0.15 of pooled cosine and lifts rounds 1-2 by +0.3 each.
+2. **Fit-vs-controllability** inside a single round, visible on DMC where
+   doubling the round-0 schedule drops round-0 cosine by 0.15.
+
+They pull against each other. The right configuration is "just enough fit
+to converge, no more, then freeze" — not the default `warm_start_epochs =
+2 * epochs`. For E1 reacher-easy, `warm_start_epochs ≈ epochs` (just
+freeze, no extra training) is the implied correction; for E2 push-v3 the
+current 2× appears about right on C6 but has not been swept.
+
+C5 does not respond to this change on either env (deltas of −0.034 and
+−0.082, both inside noise). This is consistent with the diagnosis in the
+earlier section that C5 is a differential-SNR problem, not a frame problem:
+freezing the frame removes one noise source but the budget-side SNR is
+still ~1 and dominates.
+
+### Where the three failure modes now sit
+
+| failure mode | cause | fix status |
+|---|---|---|
+| C5 ~ 0 on both envs | differential SNR ≈ 1 at round-level | **not addressed** by warm-start. Needs larger per-round budget, more eval policies, or an end-of-run metric. |
+| C6 drift on MW rounds 1-2 | encoder re-trained each round, frame changes | **addressed**: freeze encoder after round 0, +0.15 pooled, +0.3 on rounds 1-2. |
+| C6 drop on E1 round 0 | fit-vs-controllability under extra epochs | **made worse** by warm-start default. Tune `warm_start_epochs` down to `~epochs`, or add a controllability regulariser (constrain latent spread while training). |
+
 ## What is still open
 
 - **C5 is the real blocker end-to-end**, not C6. All three experiments agree:

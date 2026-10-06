@@ -319,6 +319,10 @@ def run_one(cfg: dict, env_name: str, env_kwargs: dict, method: str, seed: int,
 
     history: list[dict] = []
     n_acquired, cost_spent = 0, 0.0
+    # warm-start: keep one model across rounds so the latent FRAME is stable.
+    # Only used when cfg["warm_start"] is true; otherwise `model` stays None
+    # and each round reinstantiates (the historical behaviour).
+    persistent_model = None
     for rnd in range(cfg["rounds"] + 1):
         # --- 1. train policies on the current dataset and average ---------
         perf = _evaluate_dataset(
@@ -363,15 +367,27 @@ def run_one(cfg: dict, env_name: str, env_kwargs: dict, method: str, seed: int,
         # policy context can memorize the checkpoints it saw and has nothing to
         # say about an unseen future policy.
         n_ckpt_vocab = train_ds.n_checkpoints if cfg["ckpt_id_ablation"] else 0
-        model = LDVADataModel(LDVAConfig.build(
-            obs_dim=store.obs_dim, act_dim=store.act_dim, chunk_len=store.chunk_len,
-            meta_dim=store.meta_dim, policy_feat_dim=ds.policy_feat_dim,
-            n_checkpoints=n_ckpt_vocab, latent_dim=cfg["latent_dim"],
-            hidden=tuple(cfg["hidden"])))
-        model.set_dataset_context(np.zeros((8, cfg["latent_dim"])))
+        if cfg["warm_start"] and persistent_model is not None:
+            # reuse the round-0 encoder; freeze sample and policy encoders so
+            # the latent frame stays fixed and only the heads adapt to new data
+            model = persistent_model
+            for p in model.encoder.parameters():
+                p.requires_grad_(False)
+            for p in model.policy_encoder.parameters():
+                p.requires_grad_(False)
+            round_epochs = cfg["epochs"]
+        else:
+            model = LDVADataModel(LDVAConfig.build(
+                obs_dim=store.obs_dim, act_dim=store.act_dim, chunk_len=store.chunk_len,
+                meta_dim=store.meta_dim, policy_feat_dim=ds.policy_feat_dim,
+                n_checkpoints=n_ckpt_vocab, latent_dim=cfg["latent_dim"],
+                hidden=tuple(cfg["hidden"])))
+            model.set_dataset_context(np.zeros((8, cfg["latent_dim"])))
+            round_epochs = (cfg["warm_start_epochs"]
+                            if cfg["warm_start"] else cfg["epochs"])
         model, train_hist = train_datamodel(
             model, train_ds, val_ds,
-            TrainConfig(epochs=cfg["epochs"], eval_every=max(cfg["epochs"], 1),
+            TrainConfig(epochs=round_epochs, eval_every=max(round_epochs, 1),
                         seed=seeds["latent"] + rnd,
                         weights=LossWeights(1.0, 1.0, 0.1, 0.01),
                         # attach, never init: this trains once per round inside
@@ -379,6 +395,8 @@ def run_one(cfg: dict, env_name: str, env_kwargs: dict, method: str, seed: int,
                         wandb=log.active, wandb_attach=True,
                         wandb_prefix="datamodel/"),
             table)
+        if cfg["warm_start"]:
+            persistent_model = model
 
         # --- 4-6. encode, cluster, outward directions ---------------------
         # P0.4: features and vocabulary index travel together, so they cannot
@@ -616,6 +634,9 @@ def build_config(args) -> dict:
         cfg["ckpt_id_ablation"] = True
     if args.val_split_by:
         cfg["val_split_by"] = args.val_split_by
+    cfg["warm_start"] = bool(getattr(args, "warm_start", False))
+    _ws_e = getattr(args, "warm_start_epochs", None)
+    cfg["warm_start_epochs"] = _ws_e if _ws_e is not None else 2 * cfg["epochs"]
     return cfg
 
 
@@ -653,6 +674,15 @@ def main() -> dict:
                     help="wandb group; defaults to <experiment>-<env>")
     ap.add_argument("--experiment", type=str, default=None,
                     help="experiment label recorded as a wandb tag, e.g. E1")
+    ap.add_argument("--warm-start", action="store_true",
+                    help="train the data model once at round 0 for "
+                         "warm_start_epochs; freeze the sample encoder + "
+                         "policy encoder after that so later rounds only "
+                         "re-fit readout/utility on the same latent frame "
+                         "(docs/E1_E2_first_results.md, C6 drift)")
+    ap.add_argument("--warm-start-epochs", type=int, default=None,
+                    help="epochs for the round-0 warm start; defaults to 2x "
+                         "the per-round --epochs")
     args = ap.parse_args()
 
     cfg = build_config(args)
