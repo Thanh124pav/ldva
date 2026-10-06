@@ -243,6 +243,18 @@ Routes that would help: freeze the encoder after round 0, measure
 constraint between rounds, or re-express directions in a frame invariant
 across retrainings (e.g. the metadata frame they were mapped from).
 
+A fourth, more structural route: **a warm-start phase before acquisition
+starts**. Train the data model normally on D_0 for a long enough schedule
+that the encoder has converged on a representation, then freeze the
+encoder for the acquisition loop and only re-fit the effect readout and
+set-utility head per round. The direction planned in round 0 then lives
+in a frame that round N shares, so a cosine measured in round N against
+the round-0 plan is comparing like with like rather than two different
+embeddings. This has the extra benefit that per-round predicted_utility
+stops carrying the encoder's reinitialisation noise, which should also
+narrow the predicted/realized Spearman estimate on C5 even where the
+budget-side signal remains thin.
+
 ### Combined reading
 
 The data model is doing its job on both environments. The two failures
