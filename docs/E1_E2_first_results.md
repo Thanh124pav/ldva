@@ -17,6 +17,57 @@ MUJOCO_GL=osmesa PYOPENGL_PLATFORM=osmesa WANDB_MODE=offline \
     --out runs/{E1_dmc,E2_metaworld}/<m> --no-plots
 ```
 
+## TL;DR
+
+Five findings, four of them new; the writeup below carries the numbers.
+
+1. **E0 at HEAD passes 4.3/6 criteria on average over 10 seeds.** C3 and
+   C4 pass every seed, C1 and C6 pass most, **C2 and C5 are the fragile
+   ones** (5/10 and 3/10 respectively).
+
+2. **The D_0 rank-fix in `5070912` traded C1/C2 margin for C6.** On the
+   same seeds that `E0_fixed` recorded C1 ratios of 1.1–13× and C2 ratios
+   of 1.1–3.5×, HEAD gives 1.00–5.0× and 0.94–1.03×. Fixing C6 was not
+   free; `E0_root_cause.md` did not say this. The current C1 and C2
+   thresholds (ratio > 1) now sit inside the seed-level noise band.
+
+3. **C5 and C6 reproduce as failures on both real envs** (192
+   round-points each). Across E1 and E2 pooled, Spearman(predicted,
+   realized) is +0.045 and +0.083 (both p > 0.2), and mean
+   `direction_control_cosine` is −0.085 and −0.150. The method's two load-
+   bearing signals are missing on real data.
+
+4. **The failures sit outside the data model**, which fits what it is
+   trained to fit (`val/gain_within_r2` is +0.68 on DMC, +0.39 on MW;
+   `val/effect_spearman` +0.87 / +0.68). The real causes are
+   environmental:
+   - **C5 is a differential-SNR problem.** `rollout_return_std` per
+     policy is 3.22 on DMC vs mean `|realized_gain|` 3.58 — signal/noise
+     ratio 1.11. 29.4 vs 32.4 on MetaWorld, SNR 1.10. The quantity C5
+     tries to predict is at the noise floor at this budget, regardless of
+     planner quality.
+   - **C6 has two separate causes** that happen to pool to a similar
+     number. Frame drift round-to-round (encoder retrained each round,
+     visible on MW) and a fit-vs-controllability trade-off within a
+     single round (longer training on an already-converged encoder,
+     visible on DMC).
+
+5. **Warm-start+freeze implemented and run.** It confirms the two-cause
+   split on C6: on MW rounds 1-2 the cosine moves from −0.03 / −0.18 to
+   **+0.25 / +0.13** when the frame is frozen — frame drift was real. On
+   DMC round 0 the cosine falls from **+0.196 to +0.048** when the
+   round-0 encoder trains for 80 epochs instead of 40 — the
+   fit-vs-controllability trade-off from `E0_criteria_resolution.md` is
+   real at round-0 isolation. The two causes have **opposite fixes**;
+   the current default `--warm-start-epochs = 2 * epochs` helps MW and
+   hurts DMC. C5 does not respond to warm-start on either env
+   (differential-SNR, not a frame problem).
+
+What this does **not** show: whether `BatchUtility` + `AllocationObjective`
+can predict realized rollout gain at a budget where SNR >> 1, or whether
+the fit-vs-controllability trade-off can be broken by a controllability
+regulariser rather than by cutting epochs. Both open.
+
 ## E0 at HEAD (10 seeds, full config)
 
 ```bash
