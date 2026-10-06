@@ -178,6 +178,79 @@ Pooled over 192 points:
    against a baseline that cannot pick up the extra structure a full-rank
    D_0 exposes.
 
+## Why C5 and C6 fail on real envs: it is not the data model
+
+With 240 round-points per env in hand, the two failure modes have different
+causes, both located outside the model.
+
+### C5 is not a prediction problem; it is a noise-floor problem
+
+The data model's internal fit is actually strong on both envs:
+
+| | E1 DMC | E2 MW |
+|---|---|---|
+| val/gain_within_r2 | +0.68 | +0.39 |
+| val/gain_within_spearman | +0.83 | +0.66 |
+| val/effect_r2 | +0.70 | +0.44 |
+| val/effect_spearman | +0.87 | +0.68 |
+
+It is predicting *within-dataset* gain and effect well. What C5 compares
+predicted_utility to is the **round-to-round rollout return gain**, and that
+quantity is dominated by policy-training noise:
+
+| | E1 | E2 |
+|---|---|---|
+| rollout_return_std per policy checkpoint | **3.22** | **29.4** |
+| mean &#124;realized gain&#124; between rounds | 3.58 | 32.4 |
+| **signal/noise ratio** | **1.11** | **1.10** |
+
+The thing C5 asks the planner to predict has an SNR of ~1 on both envs; a
+Spearman near zero is what that SNR actually permits regardless of planner
+quality. Supporting evidence: splitting E1 round-points by the median of
+gain_within_r2, the top-half (where the model's internal fit is best) gives
+spearman +0.151 vs the bot-half's −0.060. There is some signal where the
+model fits well; it just stays inside the noise band.
+
+Routes that would help: more eval policies per round, bigger per-round
+budget so realized_gain outruns noise, or dropping the "next-round" scope
+and comparing predicted total value against final-round return. The current
+C5 is a strict test the budget was not sized for.
+
+### C6 is not a mapper problem; it is a latent-drift problem
+
+Direction control cosine on E1 **by round**:
+
+| round | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| mean cos | **+0.196** | −0.133 | −0.243 | −0.161 |
+
+Round 0 (where the planner's latent frame is the same one the realized
+movement is measured in) is positive. Rounds 1-3 collapse. The data model
+is **retrained each round on the enlarged dataset**, so by round 1 the
+encoder has a different frame; the direction planned in the round-0 frame
+is being measured in the round-1 frame, and ends up near random or
+opposite. `val/latent_norm_mean` std across rounds is 0.18 on E1 and
+**0.39** on E2 — the latent norm itself shifts between rounds, which is a
+drift signature.
+
+Supporting evidence: C6 cosine vs gain_within_r2 has spearman +0.001
+(p=0.99) on E1 and −0.193 (p=0.007) on E2 — direction control fails **not**
+when the data model fits poorly but independently of fit, which matches
+"frame changed" rather than "mapper wrong".
+
+Routes that would help: freeze the encoder after round 0, measure
+`specificity_gap` only at round 0 as E0 does, add an explicit drift
+constraint between rounds, or re-express directions in a frame invariant
+across retrainings (e.g. the metadata frame they were mapped from).
+
+### Combined reading
+
+The data model is doing its job on both environments. The two failures
+sit **downstream** of it: a noise floor the gate did not budget for, and a
+frame change the gate's statistic does not control for. Any next pass that
+tightens C5/C6 as currently written without changing either will measure
+noise or drift, not method quality.
+
 ## What is still open
 
 - **C5 is the real blocker end-to-end**, not C6. All three experiments agree:
