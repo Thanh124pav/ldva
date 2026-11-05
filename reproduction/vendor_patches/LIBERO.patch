@@ -1,0 +1,16 @@
+diff --git a/libero/libero/benchmark/__init__.py b/libero/libero/benchmark/__init__.py
+index 2b833d0..326c05f 100644
+--- a/libero/libero/benchmark/__init__.py
++++ b/libero/libero/benchmark/__init__.py
+@@ -161,7 +161,10 @@ class Benchmark(abc.ABC):
+             self.tasks[i].problem_folder,
+             self.tasks[i].init_states_file,
+         )
+-        init_states = torch.load(init_states_path)
++        # Official LIBERO initial states include NumPy objects, not weights.
++        # Preserve the original loading semantics after PyTorch 2.6 changed
++        # its default. Only load the benchmark files shipped with this repo.
++        init_states = torch.load(init_states_path, weights_only=False)
+         return init_states
+ 
+     def set_task_embs(self, task_embs):

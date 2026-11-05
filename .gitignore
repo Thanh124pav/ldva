@@ -18,3 +18,11 @@ wandb/
 
 # envs (we use shared conda envs, see README)
 .venv*/
+
+# External clones and reproduction runtime artifacts are archived as source patches.
+/external/
+/logs/
+/scratchpad/libero_config/
+wandb.txt
+*.hdf5
+*.pkl

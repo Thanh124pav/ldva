@@ -1,0 +1,44 @@
+[
+  {
+    "path": "external/amf",
+    "url": "https://github.com/marbaga/amf.git",
+    "commit": "5f76b5ec6d834d9a77e2ccce8545504a10523293",
+    "patch": "reproduction/vendor_patches/amf.patch"
+  },
+  {
+    "path": "external/datamil",
+    "url": "https://github.com/UT-Austin-RobIn/datamil.git",
+    "commit": "f8fc4abccacd1e2b070e68128a7f2bce98f4b303",
+    "patch": "reproduction/vendor_patches/datamil.patch"
+  },
+  {
+    "path": "external/LIBERO",
+    "url": "https://github.com/Lifelong-Robot-Learning/LIBERO.git",
+    "commit": "8f1084e3132a39270c3a13ebe37270a43ece2a01",
+    "patch": "reproduction/vendor_patches/LIBERO.patch"
+  },
+  {
+    "path": "external/diffusion_policy",
+    "url": "https://github.com/real-stanford/diffusion_policy.git",
+    "commit": "5ba07ac6661db573af695b419a7947ecb704690f",
+    "patch": "reproduction/vendor_patches/diffusion_policy.patch"
+  },
+  {
+    "path": "external/metaworld-history",
+    "url": "https://github.com/Farama-Foundation/Metaworld.git",
+    "commit": "cca35cff0ec62f1a18b11440de6b09e2d10a1380",
+    "patch": null
+  },
+  {
+    "path": "external/pytorch3d",
+    "url": "https://github.com/facebookresearch/pytorch3d.git",
+    "commit": "3145dd4d16edaceb394838364b8e87a440f83c10",
+    "patch": null
+  },
+  {
+    "path": "external/octo",
+    "url": "https://github.com/octo-models/octo.git",
+    "commit": "653c54acde686fde619855f2eac0dd6edad7116b",
+    "patch": null
+  }
+]

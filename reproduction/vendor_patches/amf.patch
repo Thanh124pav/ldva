@@ -1,0 +1,916 @@
+diff --git a/dataset.py b/dataset.py
+index e60099b..fba2e47 100644
+--- a/dataset.py
++++ b/dataset.py
+@@ -51,6 +51,10 @@ class Dataset(torch.utils.data.Dataset):
+                 demos = file['data']
+                 for i in tqdm(range(len(demos)), desc="Loading hdf5 to ReplayBuffer"):
+                     demo = demos[f'demo_{i}']
++                    if cfg.get('require_successful_demos', False):
++                        rewards = np.asarray(demo['rewards'])
++                        if not np.isfinite(rewards).all() or not np.any(rewards > 0):
++                            raise ValueError(f'Unsuccessful/nonfinite demo: {dataset_path}/data/demo_{i}')
+                     episode = _data_to_obs(
+                         raw_obs=demo['obs'],
+                         raw_actions=demo['actions'][:].astype(np.float32),
+diff --git a/logger.py b/logger.py
+index a1c11df..82516d3 100644
+--- a/logger.py
++++ b/logger.py
+@@ -1,23 +1,46 @@
+ import yaml
++import json
++import os
++from pathlib import Path
++import numpy as np
+ 
+ 
+ class Logger:
+ 
+     def __init__(self, cfg):
+         self.config = cfg
+-        if self.config.wandb_mode == 'online':
+-            import wandb
+-            self.wandb_run = wandb.init(project='amf', mode=cfg.wandb_mode,
+-                group=cfg.wandb_group, dir=str(cfg.working_dir), config=cfg
+-            )
+-        with open(self.config.working_dir + "/metrics.yaml", "w"):
+-            pass
++        self.directory = Path(cfg.working_dir)
++        self.directory.mkdir(parents=True, exist_ok=True)
++        import wandb
++        identity = self.directory / 'wandb_run_id.txt'
++        run_id = identity.read_text().strip() if identity.exists() else wandb.util.generate_id()
++        identity.write_text(run_id)
++        self.wandb_run = wandb.init(project=os.environ.get('WANDB_PROJECT', 'paper-reproduction'),
++            mode=cfg.wandb_mode, id=run_id, resume='allow', name=cfg.exp_name,
++            group=cfg.wandb_group, dir=str(self.directory), config=cfg.to_dict())
++        (self.directory / 'config.yaml').write_text(yaml.safe_dump(cfg.to_dict()))
++        print('WANDB_RUN_URL=' + str(self.wandb_run.url), flush=True)
+ 
+     def log(self, metrics, epoch):
+-        if self.config.wandb_mode == 'online':
+-            self.wandb_run.log(metrics, step=epoch)
+-        if 'mean_score' in metrics:
+-            metrics = {k: float(v) for k, v in metrics.items()}
+-            [print(k+':', v) for k, v in metrics.items()]
+-            with open(self.config.working_dir + "/metrics.yaml", "a+") as yamlfile:
+-                yaml.safe_dump([metrics], yamlfile)
++        numeric = {k: float(v) for k, v in metrics.items() if np.isscalar(v)}
++        with (self.directory / 'metrics.jsonl').open('a') as stream:
++            stream.write(json.dumps(dict(epoch=epoch, **{k:v for k,v in numeric.items() if k!='epoch'})) + '\n')
++            stream.flush()
++            os.fsync(stream.fileno())
++        self.wandb_run.log(metrics, step=epoch)
++        if 'mean_score' in numeric:
++            with (self.directory / 'evaluation.yaml').open('a') as stream:
++                yaml.safe_dump([numeric], stream)
++            print('EVALUATION=' + json.dumps(numeric), flush=True)
++
++    def finish(self):
++        import wandb
++        artifact = wandb.Artifact(self.config.exp_name + '-results', type='evaluation')
++        for name in ['metrics.jsonl', 'evaluation.yaml', 'config.yaml']:
++            if (self.directory / name).exists():
++                artifact.add_file(str(self.directory / name))
++        source = Path(__file__).resolve().parent
++        for name in ['main.py', 'trainer.py', 'runner.py', 'logger.py', 'policy/mlp.py', 'policy/diffusion.py']:
++            artifact.add_file(str(source/name), name='source/'+name)
++        self.wandb_run.log_artifact(artifact)
++        self.wandb_run.finish()
+diff --git a/main.py b/main.py
+index 12690bc..45cc039 100644
+--- a/main.py
++++ b/main.py
+@@ -6,6 +6,10 @@ import random
+ import tqdm
+ import yaml
+ import sys
++import itertools
++import time
++import cloudpickle
++from pathlib import Path
+ from ml_collections import ConfigDict, FrozenConfigDict
+ 
+ from dataset import Dataset
+@@ -34,11 +38,15 @@ def update_config(cfg):
+         cfg.num_val_episodes = 20 if 'visual' in cfg.env_name else 50
+         cfg.finetune_repeat_demos = 2 if 'visual' in cfg.env_name else 1
+     cfg.obs_dim = OBS_DIM[cfg.env_name]
+-    dummy_emb = get_embed_fn(cfg)(torch.zeros(1,))
++    dummy_emb = get_embed_fn(cfg)(torch.zeros(1, device=cfg.device))
+     cfg.obs_dim += dummy_emb.shape[-1]
+     cfg.action_dim = ACTION_DIM[cfg.env_name]
+     cfg.pre_demos = {k: v for k, v in cfg.pre_demos.items() if k in TASKS[cfg.env_name]}
+     cfg.tasks = TASKS[cfg.env_name]
++    if 'eval_episodes_override' in cfg:
++        cfg.num_val_episodes = cfg.eval_episodes_override
++    if 'repeat_demos_override' in cfg:
++        cfg.finetune_repeat_demos = cfg.repeat_demos_override
+     return FrozenConfigDict(cfg)
+ 
+ 
+@@ -54,8 +62,8 @@ def main(cfg):
+     # Initially fill dataset with all data, in order to initialize normalizer
+     dataset = Dataset(cfg)
+     val_dataset = dataset.get_validation_dataset()
+-    train_dataloader = DataLoader(dataset, batch_size=cfg.batch_size, num_workers=1, pin_memory=True, shuffle=True)
+-    val_dataloader = DataLoader(val_dataset, batch_size=cfg.batch_size, num_workers=1, pin_memory=True, shuffle=True)
++    train_dataloader = DataLoader(dataset, batch_size=cfg.batch_size, num_workers=0, pin_memory=True, shuffle=True)
++    val_dataloader = DataLoader(val_dataset, batch_size=cfg.batch_size, num_workers=0, pin_memory=True, shuffle=True)
+ 
+     trainer = Trainer(cfg, dataset, train_dataloader)
+     env_runner = Runner(cfg)
+@@ -63,8 +71,23 @@ def main(cfg):
+     # Set pre-training demos
+     dataset.flush()
+     dataset.extend(cfg.pre_demos)
+-
+-    for epoch in range(cfg.pre_epochs + cfg.finetune_epochs * cfg.finetune_iters):
++    start_epoch = 0
++    checkpoint = Path(cfg.working_dir) / 'checkpoint.pkl'
++    if checkpoint.exists():
++        with checkpoint.open('rb') as stream:
++            saved = cloudpickle.load(stream)
++        trainer, dataset = saved['trainer'], saved['dataset']
++        train_dataloader = trainer.dataloader
++        start_epoch = saved['epoch'] + 1
++        np.random.set_state(saved['numpy_rng'])
++        random.setstate(saved['python_rng'])
++        torch.set_rng_state(saved['torch_rng'])
++        if torch.cuda.is_available():
++            torch.cuda.set_rng_state_all(saved['cuda_rng'])
++        print(f'RESUMED epoch={start_epoch}', flush=True)
++
++    for epoch in range(start_epoch, cfg.pre_epochs + cfg.finetune_epochs * cfg.finetune_iters):
++        epoch_started = time.monotonic()
+ 
+         fine_epoch = epoch - cfg.pre_epochs
+         finetune, pretrain = fine_epoch >= 0, fine_epoch < 0
+@@ -77,7 +100,14 @@ def main(cfg):
+         if finetune and (fine_epoch % cfg.finetune_epochs == 0):
+             dataset.extend(trainer.select_demos(epoch))
+ 
+-        with tqdm.tqdm(train_dataloader, desc=f"Training epoch {epoch}", leave=False) as tepoch:
++        batches = train_dataloader
++        if finetune and cfg.get('finetune_gradient_steps', 0):
++            # Exactly the Appendix M.3.4 step budget, cycling batches as needed.
++            def repeat_batches():
++                while True:
++                    yield from train_dataloader
++            batches = itertools.islice(repeat_batches(), cfg.finetune_gradient_steps)
++        with tqdm.tqdm(batches, desc=f"Training epoch {epoch}", leave=False) as tepoch:
+             for batch in tepoch:
+                 train_batch = dict_apply(batch, lambda x: x.to(cfg.device, non_blocking=True))
+                 step_log = trainer.train_step(train_batch)
+@@ -114,7 +144,21 @@ def main(cfg):
+         policy.train()
+         step_log.update({'demos_' + k: v for k, v in dataset.get_composition().items()})
+         step_log.update(trainer.get_finetuning_metrics())
++        step_log['timing/epoch_seconds'] = time.monotonic() - epoch_started
++        if torch.cuda.is_available():
++            step_log['gpu/peak_allocated_gb'] = torch.cuda.max_memory_allocated() / 2**30
++            step_log['gpu/peak_reserved_gb'] = torch.cuda.max_memory_reserved() / 2**30
+         logger.log(step_log, epoch)
++        temporary = checkpoint.with_suffix('.tmp')
++        with temporary.open('wb') as stream:
++            cloudpickle.dump(dict(epoch=epoch, trainer=trainer, dataset=dataset,
++                numpy_rng=np.random.get_state(), python_rng=random.getstate(),
++                torch_rng=torch.get_rng_state(),
++                cuda_rng=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []), stream)
++            stream.flush()
++            os.fsync(stream.fileno())
++        os.replace(temporary, checkpoint)
++    logger.finish()
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/policy/diffusion.py b/policy/diffusion.py
+index 6a38c8b..a585af5 100644
+--- a/policy/diffusion.py
++++ b/policy/diffusion.py
+@@ -35,7 +35,7 @@ class DiffusionPolicy(ModuleAttrMixin):
+             beta_schedule='squaredcos_cap_v2',
+             num_train_timesteps=100,
+         )
+-        self.num_inference_steps = self.noise_scheduler.config.num_train_timesteps
++        self.num_inference_steps = cfg.get('num_inference_steps_override', self.noise_scheduler.config.num_train_timesteps)
+         self.mask_generator = LowdimMaskGenerator(
+             action_dim=self.action_dim,
+             obs_dim=0 if (self.obs_as_local_cond or self.obs_as_global_cond) else self.obs_dim,
+diff --git a/policy/mlp.py b/policy/mlp.py
+index c1c175c..939a2cf 100644
+--- a/policy/mlp.py
++++ b/policy/mlp.py
+@@ -18,7 +18,7 @@ class MLPPolicy(ModuleAttrMixin):
+         assert cfg.horizon == 1
+         assert cfg.n_action_steps == 1
+         assert cfg.n_obs_steps == 1
+-        self.hidden_dims = 512
++        self.hidden_dims = cfg.get('hidden_dims', 512)
+         self.hidden_layers = 2
+         self.normalizer = LinearNormalizer()
+         self.min_std = 0.0001
+@@ -32,7 +32,8 @@ class MLPPolicy(ModuleAttrMixin):
+             layers += [nn.Linear(sizes[i], sizes[i + 1])]
+             layers += [nn.LayerNorm(sizes[i + 1])]
+             layers += [nn.ReLU(inplace=True)]
+-        layers += [nn.Linear(sizes[-2], sizes[-1])]
++        if not cfg.get('paper_mlp_layout', False):
++            layers += [nn.Linear(sizes[-2], sizes[-1])]
+         self.share = nn.Sequential(*layers)
+         self.mean_layer = nn.Linear(
+             self.hidden_dims, self.action_dim
+diff --git a/runner.py b/runner.py
+index 7d244a5..c9d2996 100644
+--- a/runner.py
++++ b/runner.py
+@@ -13,8 +13,6 @@ from common.pytorch_util import RotationTransformer
+ 
+ from common.pytorch_util import dict_apply
+ from env.robomimic import RobomimicLowdimWrapper
+-from env.kitchen import Kitchen, KitchenVisual
+-from env.metaworld import Metaworld, MetaworldVisual
+ from common.constants import TASKS, MAX_STEPS, has_abs_action, get_dataset_path
+ import robomimic.utils.file_utils as FileUtils
+ import robomimic.utils.env_utils as EnvUtils
+@@ -25,17 +23,28 @@ def create_env(cfg, task):
+ 
+     abs_action = has_abs_action(cfg.env_name)
+     if cfg.env_name == 'kitchen':
++        from env.kitchen import Kitchen
+         return Kitchen(task)
+     elif cfg.env_name == 'kitchen_visual':
++        from env.kitchen import KitchenVisual
+         return KitchenVisual(task)
+     elif cfg.env_name == 'metaworld':
++        from env.metaworld import Metaworld
+         return Metaworld(task)
+     elif cfg.env_name == 'metaworld_visual':
++        from env.metaworld import MetaworldVisual
+         return MetaworldVisual(task)
+     dataset_path = os.path.expanduser(get_dataset_path(cfg.data_root, cfg.env_name, task))
+     env_meta = FileUtils.get_env_metadata_from_dataset(dataset_path)
+     if abs_action:
+-        env_meta['env_kwargs']['controller_configs']['control_delta'] = False
++        controller = env_meta['env_kwargs']['controller_configs']
++        if 'body_parts' in controller:
++            # Robosuite 1.5 composite controller (downloaded v1.5 dataset).
++            for part in controller['body_parts'].values():
++                if isinstance(part, dict) and part.get('type', '').startswith('OSC'):
++                    part['input_type'] = 'absolute'
++        else:
++            controller['control_delta'] = False
+     obs_keys=['object', 'robot0_eef_pos', 'robot0_eef_quat', 'robot0_gripper_qpos']
+     ObsUtils.initialize_obs_modality_mapping_from_dict({'low_dim': obs_keys})
+     env = EnvUtils.create_env_from_metadata(
+@@ -74,7 +83,7 @@ class Runner:
+         self.n_test = cfg.num_val_episodes
+         self.n_envs = None
+         if self.n_envs is None:
+-            self.n_envs = self.n_test
++            self.n_envs = min(self.n_test, cfg.get('num_parallel_envs', self.n_test))
+         self.abs_action = has_abs_action(cfg.env_name)
+         self.rotation_transformer = None
+         if self.abs_action:
+@@ -88,6 +97,7 @@ class Runner:
+         self.envs = {}
+         for task in TASKS[self.cfg.env_name]:
+             max_steps = MAX_STEPS[self.cfg.env_name][task]
++            max_steps = self.cfg.get('eval_max_steps_override', max_steps)
+             def env_fn(i):
+                 env = create_env(self.cfg, task)
+                 return MultiStepWrapper(
+@@ -101,7 +111,7 @@ class Runner:
+                         n_action_steps=self.cfg.n_action_steps,
+                         max_episode_steps=max_steps
+                     )
+-            env_fns = [partial(env_fn, i) for i in range(self.n_test)]
++            env_fns = [partial(env_fn, i) for i in range(self.n_envs)]
+             self.envs[task] = (SyncVectorEnv if self.cfg.env_sync else AsyncVectorEnv)(env_fns)
+ 
+     def run(self, trainer):
+@@ -131,6 +141,7 @@ class Runner:
+                 policy.reset()
+                 pbar = tqdm.tqdm(total=max_steps, desc=f"Eval {task} {chunk_idx+1}/{n_chunks}", leave=False)
+                 done = False
++                episode_max_rewards = np.zeros(self.n_envs)
+                 while not done:
+                     np_obs_dict = {'obs': obs[:,:self.cfg.n_obs_steps].astype(np.float32), 'task_id':np.full((obs.shape[0], self.cfg.n_obs_steps, 1), task_id)}
+                     obs_dict = dict_apply(np_obs_dict, lambda x: torch.from_numpy(x).to(device=policy.device))
+@@ -148,14 +159,17 @@ class Runner:
+                     if self.abs_action:
+                         env_action = self.undo_transform_action(action)
+ 
+-                    obs, _, _, done, _ = env.step(env_action)
++                    obs, rewards, _, done, _ = env.step(env_action)
++                    # VectorEnv autoresets completed environments. Preserve
++                    # episode success before reset clears wrapper rewards.
++                    episode_max_rewards = np.maximum(episode_max_rewards, rewards)
+                     done = np.all(done)
+                     pbar.update(action.shape[1])
+                 pbar.close()
+ 
+                 # collect data for this round
+-                all_video_paths[this_global_slice] = env.render()[this_local_slice]
+-                all_rewards[this_global_slice] = env.call('get_rewards')[this_local_slice]
++                all_video_paths[this_global_slice] = list(env.call('render'))[this_local_slice]
++                all_rewards[this_global_slice] = list(episode_max_rewards)[this_local_slice]
+ 
+             log_data.update({f'video_{task}_{i}': wandb.Video(video_path) for i, video_path in enumerate(all_video_paths) if video_path is not None})
+             log_data[f'mean_score_{task}'] = np.mean([np.max(ep_rewards) for ep_rewards in all_rewards])
+diff --git a/scripts/collect_kitchen.py b/scripts/collect_kitchen.py
+index 27446db..bf0f854 100644
+--- a/scripts/collect_kitchen.py
++++ b/scripts/collect_kitchen.py
+@@ -6,6 +6,7 @@ import h5py
+ import numpy as np
+ import gymnasium as gym
+ import robohive
++import os
+ 
+ 
+ SEED = 0
+@@ -30,6 +31,9 @@ if __name__ == "__main__":
+ 
+     bc_paths = []
+     for TASK, (env_name, data_path, task_name) in enumerate(zip(ENV_NAMES, DATA_PATHS, TASK_NAMES)):
++        if not os.path.isfile(data_path):
++            print(f"Skipping unavailable input for {task_name}: {data_path}")
++            continue
+         data = {'data': {}}
+         env = gym.make(env_name, visual_keys=[f"rgb:right_cam:224x224:2d"])
+         env.unwrapped.seed(SEED)
+@@ -56,7 +60,9 @@ if __name__ == "__main__":
+             if path_dict['rewards'].sum() >= 0:
+                 data['data'][f"demo_{len(data['data'])}"] = path_dict
+ 
+-        with h5py.File(f'data/kitchen/datasets/{task_name}/ph/low_dim_abs.hdf5', 'w') as hdf:
++        output_path = f'data/kitchen/datasets/{task_name}/ph/low_dim_abs.hdf5'
++        os.makedirs(os.path.dirname(output_path), exist_ok=True)
++        with h5py.File(output_path, 'w') as hdf:
+             group = hdf.create_group('data')
+             for demo_name, demo_data in data['data'].items():
+                 subgroup = group.create_group(demo_name)
+diff --git a/scripts/collect_metaworld.py b/scripts/collect_metaworld.py
+index 60bc627..07974b7 100644
+--- a/scripts/collect_metaworld.py
++++ b/scripts/collect_metaworld.py
+@@ -5,8 +5,23 @@ Collects demonstrations in metaworld
+ from tqdm import tqdm
+ import numpy as np
+ import gymnasium as gym
+-from env.metaworld import Metaworld, SawyerXYZEnv
+ import h5py
++import argparse
++import json
++import os
++from pathlib import Path
++
++
++def successful_demo(demo):
++    """Keep finite trajectories with an observed success, not merely reward >= 0."""
++    required = ('obs', 'actions', 'next_obs', 'rewards', 'dones')
++    if not all(key in demo for key in required):
++        return False
++    length = len(demo['actions'])
++    if length == 0 or any(len(demo[key]) != length for key in required):
++        return False
++    return (all(np.isfinite(demo[key]).all() for key in required)
++            and bool(np.any(demo['rewards'] > 0)))
+ 
+ 
+ def get_action(obs: np.array, task: int):
+@@ -67,25 +82,45 @@ RECORD_VIDEOS = False
+ EP_LEN = 60
+ 
+ if __name__ == "__main__":
+-
+-    dataset = {
+-        "obs": [],
+-        "visual": [],
+-        "action": [],
+-        "next_obs": [],
+-        "next_visual": [],
+-        "reward": [],
+-        "task": [],
+-        "truncated": [],
+-    }
++    from env.metaworld import Metaworld
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--data-root', type=Path, default=Path('data/metaworld_success_v1'))
++    parser.add_argument('--seed', type=int, default=20261104)
++    parser.add_argument('--demos', type=int, default=STOP_AT)
++    parser.add_argument('--max-attempts', type=int, default=400)
++    parser.add_argument('--wandb', action='store_true')
++    args = parser.parse_args()
++    assert args.demos > 0 and args.max_attempts >= args.demos
++    run = None
++    if args.wandb:
++        import wandb
++        run = wandb.init(project='paper-reproduction', group='amf-metaworld-data-fix',
++                         name='successful-demo-collection', config=dict(seed=args.seed,
++                         demos_per_task=args.demos, action_noise_std=.15, horizon=EP_LEN,
++                         success_filter=True, data_root=str(args.data_root.resolve())))
++    summary = {}
+     for TASK, task_name in enumerate(TASKS):
++        output = args.data_root/'metaworld/datasets'/task_name/'ph/low_dim_abs.hdf5'
++        output.parent.mkdir(parents=True, exist_ok=True)
++        if output.exists():
++            with h5py.File(output) as hdf:
++                assert hdf.attrs.get('success_only', False)
++                assert hdf.attrs.get('collection_seed') == args.seed
++                assert len(hdf['data']) == args.demos
++                assert all(successful_demo({k: v[:] for k, v in d.items()})
++                           for d in hdf['data'].values())
++            summary[task_name] = dict(demos=args.demos, reused=True)
++            print('REUSE verified successful data', output, flush=True)
++            continue
+         data = {'data': {}}
+         print("Task ", TASK)
+-        for i in tqdm(range(N_TRAJ_PER_TASK)):
++        for i in tqdm(range(args.max_attempts)):
++            seed = args.seed + TASK * 100000 + i
++            rng = np.random.default_rng(seed)
+             env = Metaworld(
+                 task=task_name,
+             )
+-            obs, _ = env.reset()  # Reset environment
++            obs, _ = env.reset(seed=seed)
+             obs_list, action_list, reward_list = [obs], [], []
+ 
+             if RECORD_VIDEOS:
+@@ -95,7 +130,7 @@ if __name__ == "__main__":
+ 
+             for _ in range(EP_LEN):
+                 a = get_action(obs, TASK)  # Sample an action
+-                a += np.random.randn(a.shape[0]) * 0.15
++                a += rng.standard_normal(a.shape[0]) * 0.15
+                 a = np.clip(a, -1, 1)
+                 obs, reward, _, _, _ = env.step(
+                     a
+@@ -109,9 +144,10 @@ if __name__ == "__main__":
+             if RECORD_VIDEOS:
+                 cv2.destroyAllWindows()
+                 video.release()
++            env.close()
+ 
+-            dones = np.ones(len(reward_list))
+-            dones[-5:] = 1.
++            dones = np.zeros(len(reward_list))
++            dones[-1] = 1.
+             path_dict = {
+                 "obs": np.stack(obs_list[:-1], 0),
+                 "actions": np.stack(action_list),
+@@ -119,15 +155,37 @@ if __name__ == "__main__":
+                 "rewards": np.stack(reward_list),
+                 "dones": dones
+             }
+-            if path_dict['rewards'].sum() >= 0:
++            if successful_demo(path_dict):
++                path_dict['collection_seed'] = np.full(len(reward_list), seed, dtype=np.int64)
+                 data['data'][f"demo_{len(data['data'])}"] = path_dict
+-                if len(data['data']) >= STOP_AT:
+-                    break
++            if run:
++                run.log(dict(task=task_name, attempts=i+1, accepted=len(data['data']),
++                             success=successful_demo(path_dict), collection_seed=seed))
++            if len(data['data']) >= args.demos:
++                break
++        assert len(data['data']) == args.demos, f'Insufficient successful demos for {task_name}'
+             
+ 
+-        with h5py.File(f'data/metaworld/datasets/{task_name}/ph/low_dim_abs.hdf5', 'w') as hdf:
++        temporary = output.with_suffix('.collecting.hdf5')
++        # Exclusive creation: never overwrite existing/partial datasets silently.
++        with h5py.File(temporary, 'x') as hdf:
++            hdf.attrs['success_only'] = True
++            hdf.attrs['collection_seed'] = args.seed
++            hdf.attrs['attempts'] = i + 1
++            hdf.attrs['action_noise_std'] = .15
++            hdf.attrs['horizon'] = EP_LEN
+             group = hdf.create_group('data')
+             for demo_name, demo_data in data['data'].items():
+                 subgroup = group.create_group(demo_name)
+                 for key, value in demo_data.items():
+                     subgroup.create_dataset(key, data=value)
++            hdf.flush()
++        os.rename(temporary, output)
++        summary[task_name] = dict(demos=args.demos, attempts=i+1, path=str(output))
++        print('SAVED', json.dumps(summary[task_name]), flush=True)
++    manifest = args.data_root/'collection_manifest.json'
++    manifest.write_text(json.dumps(dict(seed=args.seed, success_only=True,
++                                       horizon=EP_LEN, action_noise_std=.15, tasks=summary), indent=2))
++    if run:
++        run.summary.update(dict(complete=True, manifest=str(manifest)))
++        run.finish()
+diff --git a/trainer.py b/trainer.py
+index d210bf4..a3bc709 100644
+--- a/trainer.py
++++ b/trainer.py
+@@ -9,6 +9,31 @@ from networks.ema_model import EMAModel
+ from common.pytorch_util import optimizer_to, get_scheduler, dict_apply
+ 
+ 
++class AdaptiveMixture:
++    """Equation in paper section 4.2: alpha*pi + (1-alpha)*prior."""
++    def __init__(self, policy, prior, alpha):
++        self.policy, self.prior, self.alpha = policy, prior, alpha
++        self.device = policy.device
++
++    def reset(self):
++        self.policy.reset()
++        self.prior.reset()
++
++    def eval(self):
++        self.policy.eval()
++        self.prior.eval()
++        return self
++
++    def train(self):
++        self.policy.train()
++        return self
++
++    def predict_action(self, batch):
++        fine = self.policy.predict_action(batch)
++        prior = self.prior.predict_action(batch)
++        return {k: self.alpha * fine[k] + (1 - self.alpha) * prior[k] for k in fine}
++
++
+ def make_policy(cfg):
+     if cfg.model_class == 'mlp':
+         return MLPPolicy(cfg)
+@@ -91,11 +116,15 @@ class Trainer:
+ 
+         if self.finetune:
+             holdin_batch = {k: v[train_batch['holdout'][:, 0] == 0] for k, v in train_batch.items()}
+-            loss = self.compute_loss(holdin_batch, self.holdout_model)
+-            loss.backward()
+-            self.holdout_optimizer.step()
+-            self.holdout_optimizer.zero_grad()
+-            self.holdout_lr_scheduler.step()
++            # A small shuffled batch may consist entirely of held-out demos.
++            # No update is defined for an empty hold-in batch (NaN for MLP;
++            # invalid reshape for diffusion).
++            if len(holdin_batch['obs']):
++                loss = self.compute_loss(holdin_batch, self.holdout_model)
++                loss.backward()
++                self.holdout_optimizer.step()
++                self.holdout_optimizer.zero_grad()
++                self.holdout_lr_scheduler.step()
+ 
+         if self.finetune and self.cfg.finetune_prior and (self.finetune_steps % self.cfg.finetune_prior_every == 0):
+             with torch.no_grad():  # careful - might be very slow
+@@ -123,8 +152,10 @@ class Trainer:
+         model = self.ema_model if ema else self.model
+         if force_holdout:
+             model = self.holdout_model
+-        if self.finetune and self.cfg.finetune_prior and (task is not None):
++        if self.finetune and self.cfg.finetune_prior and (task is not None) and not force_holdout:
+             weight = self.prior.alpha[task]
++            if self.cfg.get('paper_adaptive_mixture', False):
++                return AdaptiveMixture(model, self.prior, weight)
+             if weight < 0.5:
+                 model = self.prior
+         return model
+@@ -217,6 +248,7 @@ class Trainer:
+     
+         return {k: int(sum(tasks == i) * self.cfg.finetune_repeat_demos) for i, k in enumerate(self.cfg.tasks)}
+ 
++    @torch.no_grad()
+     def get_embeddings(self, epoch):
+ 
+         embeddings = []
+@@ -233,7 +265,10 @@ class Trainer:
+         trajs = [{k: torch.stack([t[k] for t in traj], 0) for k in traj[0].keys()} for traj in trajs]
+         if len(trajs) > self.cfg.finetune_max_trajs:
+             trajs = [trajs[i] for i in np.random.choice(len(trajs), self.cfg.finetune_max_trajs, replace=False)]
+-        pruned_horizon = int(min(traj_lens) * self.cfg.finetune_prune_trajs)
++        # Short sequences / smoke pruning can round down to an empty batch,
++        # producing NaN task IDs. Keep at least one actual transition.
++        traj_lens = [len(traj['obs']) for traj in trajs]
++        pruned_horizon = max(1, int(min(traj_lens) * self.cfg.finetune_prune_trajs))
+         if pruned_horizon < max(traj_lens):
+             # ensure all demos have the same length
+             # this is necessary for parallel computation
+
+diff --git a/reproduce_gp.py b/reproduce_gp.py
+new file mode 100644
+--- /dev/null
++++ b/reproduce_gp.py
+@@ -0,0 +1,150 @@
++"""Run released GP experiments with durable, resumable CPU checkpoints."""
++
++import argparse
++import hashlib
++import json
++import os
++import pickle
++from pathlib import Path
++
++import numpy as np
++
++
++def atomic_write(path, payload):
++    temporary = path.with_suffix(path.suffix + '.tmp')
++    with temporary.open('wb') as stream:
++        stream.write(payload)
++        stream.flush()
++        os.fsync(stream.fileno())
++    os.replace(temporary, path)
++
++
++def save_results(output, state):
++    # Save recovery checkpoint before generating reports or plots.
++    atomic_write(output / 'checkpoint.pkl', pickle.dumps(state))
++    summary = {}
++    lines = ['# AMF-GP results', '',
++             'Partial results; smoke tests are not paper reproductions.', '',
++             '| Prior support | Method | Completed seeds | Final return mean | Std |',
++             '|---|---|---:|---:|---:|']
++    for support, methods in sorted(state['metrics'].items()):
++        summary[str(support)] = {}
++        for method, runs in methods.items():
++            if not runs:
++                continue
++            values = [run['performance'].mean(axis=0)[-1] for run in runs.values()]
++            summary[str(support)][method] = dict(
++                completed_seeds=len(values), mean_final_return=float(np.mean(values)),
++                std_final_return=float(np.std(values)))
++            lines.append(f'| {support} | {method} | {len(values)} | '
++                         f'{np.mean(values):.8f} | {np.std(values):.8f} |')
++    atomic_write(output / 'summary.json', json.dumps(summary, indent=2).encode())
++    atomic_write(output / 'results.md', ('\n'.join(lines) + '\n').encode())
++    return summary
++
++
++def run_experiments(ns, output, signature, supports, seeds, budget, on_saved=None):
++    output.mkdir(parents=True, exist_ok=True)
++    checkpoint = output / 'checkpoint.pkl'
++    if checkpoint.exists():
++        # Only load checkpoints produced locally by this script.
++        state = pickle.loads(checkpoint.read_bytes())
++        if state['signature'] != signature:
++            raise ValueError('Checkpoint/config mismatch; choose another output directory')
++        np.random.set_state(state['rng'])
++    else:
++        np.random.seed(0)
++        state = dict(signature=signature, metrics={}, holdout_tasks=None)
++    for support in supports:
++        methods = state['metrics'].setdefault(support, {'active': {}, 'uniform': {}})
++        prior = {k: 0 for k in range(ns['N_TASKS'])}
++        for i in range(ns['N_TASKS']):
++            prior[i % support] += 1
++        for seed in range(seeds):
++            if seed in methods['uniform']:
++                continue
++            if seed not in methods['active']:
++                state['holdout_tasks'] = np.random.choice(12, 1)
++                holdout = [ns['get_pretraining_dataset']({k: 1})
++                           for k in state['holdout_tasks']]
++                methods['active'][seed] = ns['run_experiment'](
++                    prior, method='amf', holdout_trajs=holdout,
++                    include_holdout=True, finetuning_budget=budget)
++                state['rng'] = np.random.get_state()
++                save_results(output, state)
++                print(f'SAVED support={support} seed={seed} method=active', flush=True)
++                if on_saved:
++                    on_saved(support, seed, 'active', methods['active'][seed])
++            holdout = [ns['get_pretraining_dataset']({k: 1})
++                       for k in state['holdout_tasks']]
++            methods['uniform'][seed] = ns['run_experiment'](
++                prior, method='uniform', holdout_trajs=holdout,
++                include_holdout=True, finetuning_budget=budget)
++            state['rng'] = np.random.get_state()
++            save_results(output, state)
++            print(f'SAVED support={support} seed={seed} method=uniform', flush=True)
++            if on_saved:
++                on_saved(support, seed, 'uniform', methods['uniform'][seed])
++    return state, save_results(output, state)
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--output', type=Path, default=Path('outputs/gp'))
++    parser.add_argument('--smoke-test', action='store_true')
++    parser.add_argument('--no-plots', action='store_true')
++    parser.add_argument('--wandb-mode', choices=['online', 'offline', 'disabled'], default='offline')
++    parser.add_argument('--project', default='paper-reproduction')
++    parser.add_argument('--shooting-candidates', type=int, default=20)
++    args = parser.parse_args()
++    source = Path(__file__).with_name('AMF-GP.ipynb').read_bytes()
++    notebook = json.loads(source)
++    ns = {'__name__': '__main__'}
++    for index, cell in enumerate(notebook['cells'][:4]):
++        if cell['cell_type'] == 'code':
++            exec(compile(''.join(cell['source']), f'AMF-GP.ipynb:{index}', 'exec'), ns)
++    supports = [1] if args.smoke_test else list(range(1, 13))
++    seeds, budget = (1, 1) if args.smoke_test else (ns['N_SEEDS'], 40)
++    signature = (hashlib.sha256(source).hexdigest(), supports, seeds, budget)
++    if args.shooting_candidates != 20:
++        # Keep existing released-notebook checkpoint signatures compatible.
++        signature += (args.shooting_candidates,)
++        ns['select_task'].__defaults__ = (args.shooting_candidates,)
++    import wandb
++    args.output.mkdir(parents=True, exist_ok=True)
++    run = wandb.init(project=args.project, mode=args.wandb_mode,
++                     name='amf-gp-smoke' if args.smoke_test else f'amf-gp-shooting{args.shooting_candidates}',
++                     group='amf-gp', dir=str(args.output.resolve()),
++                     config=dict(paper='2410.05026v3', notebook_sha256=signature[0],
++                                 seeds=seeds, budget=budget, prior_supports=supports,
++                                 evaluation_episodes=20, random_shooting_candidates=args.shooting_candidates,
++                                 protocol='paper appendix shooting budget' if args.shooting_candidates==100 else 'released notebook shooting budget',
++                                 smoke_test=args.smoke_test))
++    def log_saved(support, seed, method, result):
++        for round_index, value in enumerate(result['performance'].mean(axis=0)):
++            run.log({'prior_support': support, 'seed': seed, 'round': round_index,
++                     f'{method}/return': float(value),
++                     f'{method}/uncertainty': float(result['uncertainties'].mean(axis=0)[round_index])})
++    state, summary = run_experiments(ns, args.output, signature, supports, seeds, budget, log_saved)
++    for support, methods in summary.items():
++        for method, values in methods.items():
++            for metric, value in values.items():
++                run.summary[f'prior_{support}/{method}/{metric}'] = value
++    artifact = wandb.Artifact('amf-gp-results', type='evaluation')
++    for filename in ['checkpoint.pkl', 'summary.json', 'results.md']:
++        artifact.add_file(str(args.output / filename))
++    run.log_artifact(artifact)
++    run.finish()
++    print('AMF_GP_SUMMARY=' + json.dumps(summary, sort_keys=True), flush=True)
++    if not args.no_plots and not args.smoke_test:
++        import matplotlib.pyplot as plt
++        plt.rcParams.update({'text.usetex': False, 'font.family': 'DejaVu Sans'})
++        try:
++            ns['plot_all'](state['metrics'], str(args.output / 'result'))
++        except Exception as exc:
++            print(f'PLOT_FAILED (metrics already saved): {exc}', flush=True)
++            raise
++
++
++if __name__ == '__main__':
++    main()
+
+diff --git a/reproduce_nn_batch.py b/reproduce_nn_batch.py
+new file mode 100644
+--- /dev/null
++++ b/reproduce_nn_batch.py
+@@ -0,0 +1,66 @@
++"""Run paired ten-seed MetaWorld protocols with persistent configs and logs."""
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import time
++import yaml
++import argparse
++
++parser = argparse.ArgumentParser()
++parser.add_argument('--worker', type=int, default=0)
++parser.add_argument('--workers', type=int, default=1)
++args = parser.parse_args()
++
++root = Path(__file__).resolve().parent
++output = root / 'outputs' / 'metaworld_paper'
++output.mkdir(parents=True, exist_ok=True)
++base = yaml.safe_load((root / 'reproduction_metaworld_smoke.yaml').read_text())
++base.update(pre_epochs=200, rollout_every=200, sample_every=5, val_every=1,
++            finetune_iters=20, finetune_epochs=1, finetune_gradient_steps=3000,
++            eval_episodes_override=50, num_parallel_envs=5, env_sync=True,
++            paper_adaptive_mixture=True, protocol='paper Appendix M; state MetaWorld',
++            wandb_group='amf-metaworld-paper', checkpoint_every=1)
++jobs = []
++for seed in range(10):
++    for regime in ['mismatch', 'matched']:
++        for method in ['posterior_grad', 'uniform_prior', 'uniform']:
++            global_index = seed * 6 + (0 if regime == 'mismatch' else 3) + ['posterior_grad', 'uniform_prior', 'uniform'].index(method)
++            if global_index % args.workers != args.worker:
++                continue
++            name = f'amf-metaworld-{regime}-{method}-seed{seed}'
++            directory = output / name
++            directory.mkdir(exist_ok=True)
++            cfg = dict(base, seed=seed, exp_name=name, working_dir=str(directory),
++                       finetune_strategy='posterior_grad' if method=='posterior_grad' else 'uniform',
++                       finetune_prior=method!='uniform',
++                       pre_demos=dict(cup_left=8, cup_right=8, faucet_open=0, faucet_close=0)
++                       if regime=='mismatch' else dict(cup_left=4, cup_right=4,faucet_open=4,faucet_close=4))
++            config_path = directory / 'input.yaml'
++            config_path.write_text(yaml.safe_dump(cfg))
++            jobs.append(dict(name=name, config=str(config_path), directory=str(directory), cfg=cfg))
++(output / f'queue_worker{args.worker}.json').write_text(json.dumps([{k:v for k,v in j.items() if k!='cfg'} for j in jobs],indent=2))
++for index, job in enumerate(jobs):
++    directory = Path(job['directory'])
++    if (directory/'complete.json').exists():
++        continue
++    status = dict(current=job['name'], index=index, total=len(jobs), config=job['cfg'],
++                  next=jobs[index+1]['name'] if index+1<len(jobs) else None, updated=time.time())
++    (output/f'status_worker{args.worker}.json').write_text(json.dumps(status,indent=2))
++    print('STARTING '+job['name'],flush=True)
++    with (directory/'console.log').open('a') as log:
++        result = subprocess.run([sys.executable, '-u', 'main.py',job['config']],cwd=root,stdout=log,stderr=subprocess.STDOUT)
++    status.update(exit_code=result.returncode,updated=time.time())
++    (output/f'status_worker{args.worker}.json').write_text(json.dumps(status,indent=2))
++    if result.returncode:
++        with (root.parent.parent/'logs/reproduction_errors.txt').open('a') as errors:
++            errors.write(f"\n{time.ctime()} {job['name']} exit={result.returncode}\n")
++            errors.write((directory/'console.log').read_text()[-12000:])
++        raise RuntimeError(f"Job failed: {job['name']}; inspect console.log")
++    metrics=[json.loads(line) for line in (directory/'metrics.jsonl').read_text().splitlines()]
++    if not metrics or metrics[-1]['epoch']!=219 or 'mean_score' not in metrics[-1]:
++        raise RuntimeError('Missing final evaluation: '+job['name'])
++    (directory/'complete.json').write_text(json.dumps(metrics[-1],indent=2))
++    print('COMPLETED '+job['name']+' '+str(metrics[-1]['mean_score']),flush=True)
++(output/f'status_worker{args.worker}.json').write_text(json.dumps(dict(complete=True,total=len(jobs)),indent=2))
+
+diff --git a/reproduction_metaworld_smoke.yaml b/reproduction_metaworld_smoke.yaml
+new file mode 100644
+--- /dev/null
++++ b/reproduction_metaworld_smoke.yaml
+@@ -0,0 +1,40 @@
++exp_name: amf-metaworld-gpu-smoke
++device: cuda
++seed: 0
++env_name: metaworld
++env_sync: true
++pre_demos: {cup_left: 4, cup_right: 4, faucet_open: 4, faucet_close: 4}
++data_root: data
++batch_size: 256
++task_embeddings: text
++pre_epochs: 1
++rollout_every: 1
++sample_every: 1
++val_every: 1
++checkpoint_every: 1
++finetune_iters: 1
++finetune_epochs: 1
++finetune_gradient_steps: 2
++finetune_prefill_demos_per_task: 1
++finetune_strategy: posterior_grad
++finetune_demos_per_iter: 1
++finetune_repeat_demos: 1
++finetune_noise: 1.e-2
++finetune_max_trajs: 100
++finetune_prune_trajs: 0.1
++finetune_max_embedding_size: 5000
++finetune_l2: 0.0
++finetune_ewc: 0.0
++finetune_prior: true
++finetune_prior_lr: 1.0
++finetune_prior_pessimism: 1.e-2
++finetune_prior_every: 1
++wandb_group: amf-gpu-smoke
++wandb_mode: online
++working_dir: outputs/metaworld_gpu_smoke
++eval_episodes_override: 2
++num_parallel_envs: 2
++hidden_dims: 256
++paper_mlp_layout: true
++paper_adaptive_mixture: true
++protocol: smoke-test-only
+
+diff --git a/reproduction_robomimic_smoke.yaml b/reproduction_robomimic_smoke.yaml
+new file mode 100644
+--- /dev/null
++++ b/reproduction_robomimic_smoke.yaml
+@@ -0,0 +1,41 @@
++exp_name: amf-robomimic-gpu-smoke
++device: cuda
++seed: 0
++env_name: robomimic
++env_sync: true
++pre_demos: {lift: 4, can: 4, square: 4, tool_hang: 4}
++data_root: data
++batch_size: 8
++task_embeddings: text
++pre_epochs: 1
++rollout_every: 1
++sample_every: 1
++val_every: 1
++checkpoint_every: 1
++finetune_iters: 1
++finetune_epochs: 1
++finetune_gradient_steps: 2
++finetune_prefill_demos_per_task: 1
++finetune_strategy: posterior_grad
++finetune_demos_per_iter: 1
++finetune_repeat_demos: 1
++repeat_demos_override: 1
++finetune_noise: 1.e-2
++finetune_max_trajs: 10
++finetune_prune_trajs: 0.02
++finetune_max_embedding_size: 5000
++finetune_l2: 0.0
++finetune_ewc: 0.0
++finetune_prior: true
++finetune_prior_lr: 1.0
++finetune_prior_pessimism: 1.e-3
++finetune_prior_every: 100
++paper_adaptive_mixture: true
++wandb_group: amf-robomimic-smoke
++wandb_mode: online
++working_dir: outputs/robomimic_gpu_smoke
++eval_episodes_override: 1
++num_parallel_envs: 1
++eval_max_steps_override: 16
++num_inference_steps_override: 4
++protocol: smoke-only; shortened rollout and diffusion inference; v1.5 dataset and simulator

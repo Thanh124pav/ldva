@@ -1,0 +1,60 @@
+diff --git a/diffusion_policy/common/robomimic_util.py b/diffusion_policy/common/robomimic_util.py
+index 24f25fb..5b75693 100644
+--- a/diffusion_policy/common/robomimic_util.py
++++ b/diffusion_policy/common/robomimic_util.py
+@@ -11,6 +11,16 @@ from robomimic.config import config_factory
+ 
+ 
+ class RobomimicAbsoluteActionConverter:
++    @staticmethod
++    def _arm_controller(robot):
++        """Return the arm controller for robosuite 1.4 and 1.5 APIs."""
++        if hasattr(robot, 'controller'):
++            return robot.controller
++        for arm_name in getattr(robot, 'arms', []):
++            if arm_name in robot.part_controllers:
++                return robot.part_controllers[arm_name]
++        raise RuntimeError('Could not locate a robosuite arm controller')
++
+     def __init__(self, dataset_path, algo_name='bc'):
+         # default BC config
+         config = config_factory(algo_name=algo_name)
+@@ -21,7 +31,15 @@ class RobomimicAbsoluteActionConverter:
+ 
+         env_meta = FileUtils.get_env_metadata_from_dataset(dataset_path)
+         abs_env_meta = copy.deepcopy(env_meta)
+-        abs_env_meta['env_kwargs']['controller_configs']['control_delta'] = False
++        controller_config = abs_env_meta['env_kwargs']['controller_configs']
++        # robosuite <=1.4 uses control_delta at the controller root. In 1.5,
++        # BASIC is a composite controller and each arm uses input_type.
++        if 'body_parts' in controller_config:
++            for part_config in controller_config['body_parts'].values():
++                if part_config.get('type', '').startswith('OSC_'):
++                    part_config['input_type'] = 'absolute'
++        else:
++            controller_config['control_delta'] = False
+ 
+         env = EnvUtils.create_env_from_metadata(
+             env_meta=env_meta,
+@@ -37,7 +55,11 @@ class RobomimicAbsoluteActionConverter:
+             render_offscreen=False,
+             use_image_obs=False, 
+         )
+-        assert not abs_env.env.robots[0].controller.use_delta
++        abs_controller = self._arm_controller(abs_env.env.robots[0])
++        if hasattr(abs_controller, 'use_delta'):
++            assert not abs_controller.use_delta
++        else:
++            assert abs_controller.input_type == 'absolute'
+ 
+         self.env = env
+         self.abs_env = abs_env
+@@ -77,7 +99,7 @@ class RobomimicAbsoluteActionConverter:
+                 robot.control(stacked_actions[i,idx], policy_step=True)
+             
+                 # read pos and ori from robots
+-                controller = robot.controller
++                controller = self._arm_controller(robot)
+                 action_goal_pos[i,idx] = controller.goal_pos
+                 action_goal_ori[i,idx] = Rotation.from_matrix(
+                     controller.goal_ori).as_rotvec()

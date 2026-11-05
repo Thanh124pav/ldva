@@ -1,0 +1,939 @@
+diff --git a/datamil/data/dataset.py b/datamil/data/dataset.py
+index 7302196..dadc558 100644
+--- a/datamil/data/dataset.py
++++ b/datamil/data/dataset.py
+@@ -36,6 +36,7 @@ def apply_trajectory_transforms(
+     task_augment_strategy: Optional[str] = None,
+     task_augment_kwargs: dict = {},
+     training_idxs: Optional[Sequence[int]] = None,
++    filter_selected_frames: bool = False,
+     num_parallel_calls: int = tf.data.AUTOTUNE,
+ ) -> dl.DLataset:
+     """Applies common transforms that happen at a trajectory level. Such transforms are usually some sort of
+@@ -137,6 +138,16 @@ def apply_trajectory_transforms(
+         deterministic=True,
+     )
+ 
++    if filter_selected_frames and training_idxs is not None:
++        # Horizon IDs vary inside an episode. Filtering only whole episodes
++        # would accidentally retain all unselected segments of that episode.
++        # Mask AFTER chunking to preserve action targets and temporal context.
++        def select_frames(trajectory):
++            ids = tf.reshape(trajectory['index'], [-1])
++            keep = tf.reduce_any(ids[:, None] == training_idxs[None, :], axis=1)
++            return tf.nest.map_structure(lambda value: tf.boolean_mask(value, keep), trajectory)
++        dataset = dataset.traj_map(select_frames, num_parallel_calls, deterministic=True)
++
+     if train and subsample_length is not None:
+         dataset = dataset.traj_map(
+             partial(traj_transforms.subsample, subsample_length=subsample_length),
+@@ -237,6 +248,9 @@ def restructure(
+     # apply a standardization function, if provided
+     if standardize_fn is not None:
+         traj = standardize_fn(traj)
++    # A standardizer may compute paper proxy weights; do not retain stale
++    # weights captured from the raw record before that transformation.
++    sample_weights = traj.get('weights', None)
+ 
+     if not all(k in traj for k in REQUIRED_KEYS):
+         raise ValueError(
+@@ -293,10 +307,11 @@ def restructure(
+ 
+     if index is not None:
+         traj["index"] = index[:traj_len]
+-    # if sample_weights is not None:
+-    #     traj["weights"] = sample_weights[:traj_len]
+-    # else:
+-    #     traj["weights"] = tf.ones((traj_len,), dtype=tf.float32)
++    if sample_weights is not None:
++        traj['weights'] = tf.reshape(sample_weights[:traj_len], [-1])
++    else:
++        # Keep target/prior element structures identical when interleaving.
++        traj['weights'] = tf.ones([traj_len], dtype=tf.float32)
+ 
+     if absolute_action_mask is not None:
+         if len(absolute_action_mask) != traj["action"].shape[-1]:
+diff --git a/datamil/eval_libero_parallel.py b/datamil/eval_libero_parallel.py
+index b3af4f5..58b6cd5 100644
+--- a/datamil/eval_libero_parallel.py
++++ b/datamil/eval_libero_parallel.py
+@@ -1,4 +1,12 @@
+ import os
++# Octo uses Flax, not PyTorch. Avoid loading the unrelated CUDA-13 Triton
++# runtime from the pre-existing Torch installation into the simulator process.
++os.environ['USE_TORCH'] = '0'
++os.environ['USE_FLAX'] = '1'
++# Keep TensorFlow image preprocessing on CPU before importing Octo/JAX or any
++# module that may initialize a CUDA runtime. JAX owns GPU inference here.
++import tensorflow as tf
++tf.config.set_visible_devices([], 'GPU')
+ import numpy as np
+ import gym
+ import cv2
+@@ -17,6 +25,15 @@ import dlimp as dl
+ import glob
+ import json
+ 
++
++def save_json_atomic(path, value):
++    temporary = path + '.tmp'
++    with open(temporary, 'w') as stream:
++        json.dump(value, stream, indent=2)
++        stream.flush()
++        os.fsync(stream.fileno())
++    os.replace(temporary, path)
++
+ '''
+ Task ID to instruction,
+ 0 put both the alphabet soup and the tomato sauce in the basket
+@@ -246,7 +263,7 @@ def supply_rng(f, rng=jax.random.PRNGKey(0)):
+ 
+ def main(args, env_gen, env):
+ 
+-    total_evals = 50
++    total_evals = args.total_evals
+     num_envs = args.num_envs
+     save_vid = False
+     assert total_evals % num_envs == 0
+@@ -271,6 +288,14 @@ def main(args, env_gen, env):
+         init_obs = env_gen.set_init_state(env, init_set, task_id)
+         success_counts, video, actions = eval_task(policy_fn, env, init_obs, task)
+         task_successes += success_counts
++        progress = dict(task=language_instruction, checkpoint=ckpt,
++                        completed_rollouts=(init_set + 1) * num_envs,
++                        requested_rollouts=total_evals, successes=int(task_successes),
++                        success_rate=float(task_successes / ((init_set + 1) * num_envs)),
++                        complete=(init_set + 1) * num_envs == total_evals)
++        save_json_atomic(f'{args.out_dir}/progress.json', progress)
++        if getattr(args, 'wandb_run', None) is not None:
++            args.wandb_run.log(progress | {'seed': args.current_seed})
+ 
+         video = np.array(video, dtype=np.uint8)
+         if save_vid:
+@@ -307,7 +332,14 @@ if __name__ == "__main__":
+     parser.add_argument("--ckpt", type=str, default=None)
+     parser.add_argument("--out_dir", type=str, default="eval_results")
+     parser.add_argument("--task_name", type=str, default=None)
++    parser.add_argument('--total_evals', type=int, default=50)
++    parser.add_argument('--seeds', type=int, nargs='+', default=list(range(5)))
++    parser.add_argument('--wandb_mode', choices=['online', 'offline', 'disabled'], default='online')
++    parser.add_argument('--checkpoint_provenance', default='preexisting user checkpoint')
++    parser.add_argument('--run_group', default='datamil-book-caddy-evaluation')
+     args = parser.parse_args()
++    if args.num_envs < 5 or args.total_evals % args.num_envs:
++        parser.error('num_envs must be >= 5 and divide total_evals')
+ 
+     # task = 'soup-sauce'
+     # task = 'cream-butter'
+@@ -335,13 +367,39 @@ if __name__ == "__main__":
+ 
+     os.makedirs(args.out_dir, exist_ok=True)
+     out_dir = args.out_dir
++    aggregate_path = f'{out_dir}/aggregate.json'
++    if os.path.exists(aggregate_path):
++        with open(aggregate_path) as stream:
++            successes.update(json.load(stream))
+     ckpt_base= args.ckpt
+-    for seed in range(5):
++    import wandb
++    for seed in args.seeds:
+         ckpt_files = glob.glob(f'{ckpt_base}/seed{seed}_*')
++        if len(ckpt_files) != 1:
++            raise ValueError(f'Expected exactly one checkpoint for seed {seed}, got {ckpt_files}')
+         print(ckpt_files)
+         for ckpt_file in ckpt_files:
+             args.out_dir = f'{out_dir}/seed{seed}/{os.path.basename(ckpt_file)}'
+             args.ckpt = ckpt_file
++            args.current_seed = seed
++            prior_progress = f'{args.out_dir}/progress.json'
++            if os.path.exists(prior_progress):
++                with open(prior_progress) as stream:
++                    prior = json.load(stream)
++                if prior.get('complete') and prior.get('requested_rollouts') == args.total_evals and prior.get('checkpoint') == ckpt_file:
++                    successes[os.path.basename(ckpt_file)] = prior['success_rate']
++                    save_json_atomic(f'{out_dir}/aggregate.json', successes)
++                    print(f'SKIP completed seed {seed}', flush=True)
++                    continue
++            args.wandb_run = wandb.init(project=os.environ.get('WANDB_PROJECT', 'paper-reproduction'),
++                group='datamil-smoke' if args.total_evals < 50 else args.run_group,
++                name=f'datamil-{task}-seed{seed}' + ('-smoke' if args.total_evals < 50 else ''),
++                mode=args.wandb_mode, reinit=True, dir=out_dir,
++                config=dict(paper='2505.09603', seed=seed, task=task,
++                            checkpoint=ckpt_file, checkpoint_provenance=args.checkpoint_provenance,
++                            smoke_test=args.total_evals < 50,
++                            rollouts=args.total_evals, num_envs=args.num_envs,
++                            future_action_window=args.future_action_window))
+ 
+             if env_gen is None:
+                 model = OctoModel.load_pretrained(ckpt_file)
+@@ -355,6 +413,13 @@ if __name__ == "__main__":
+                  env_gen=env_gen,
+                  env=env)
+             successes[os.path.basename(ckpt_file)] = success
++            args.wandb_run.summary['success_rate'] = float(success)
++            artifact = wandb.Artifact(f'datamil-{task}-seed{seed}-evaluation', type='evaluation')
++            artifact.add_dir(args.out_dir)
++            args.wandb_run.log_artifact(artifact)
++            args.wandb_run.finish()
++            save_json_atomic(f'{out_dir}/aggregate.json', successes)
+     for k in successes:
+         print(k, successes[k])
+-    env.close()
++    if env_gen is not None:
++        env.close()
+diff --git a/datamil/metagradients/core/dataloading.py b/datamil/metagradients/core/dataloading.py
+index f5b2361..1d246f8 100644
+--- a/datamil/metagradients/core/dataloading.py
++++ b/datamil/metagradients/core/dataloading.py
+@@ -73,7 +73,9 @@ class RoboREPLAYBatch(REPLAYBatch):
+                  batch_idx:int=0,
+                  offset:int=0):
+ 
+-        assert bs % minibs == 0, "Minibatch size does not divise batch size"
++        # Validation's final batch need not be a multiple of the tile size.
++        # make_iterator already clamps the last tile to this_bs.
++        assert bs > 0 and minibs >= 2, 'Expected positive batch and replay tile size >=2'
+ 
+         super().__init__(bs)
+         self.batch = batch
+@@ -282,4 +284,4 @@ class SpecialReplayMinibatches(REPLAYMinibatches):
+             self.global_iter += 1
+ 
+             # "Yield from" the sub-minibatches of this chunk
+-            yield from replay_batch.get_minibatches(self.part)
+\ No newline at end of file
++            yield from replay_batch.get_minibatches(self.part)
+diff --git a/datamil/metagradients/core/optimizers/schedules.py b/datamil/metagradients/core/optimizers/schedules.py
+index 5c3d527..eaa5e51 100644
+--- a/datamil/metagradients/core/optimizers/schedules.py
++++ b/datamil/metagradients/core/optimizers/schedules.py
+@@ -19,8 +19,6 @@ def make_sched(lr, num_iters, pct_start, pct_final, min_lr_factor,
+             'pct_final': jnp.array(pct_final, dtype=dtype),
+         }
+     elif anneal_type == 'cosine':
+-        raise ValueError('cosine is not supported')
+-        print('>> anneal_Type is cosine')
+         fn = optax.cosine_onecycle_schedule
+         kw = {}
+     else:
+@@ -33,4 +31,4 @@ def make_sched(lr, num_iters, pct_start, pct_final, min_lr_factor,
+                         final_div_factor=final_min_lr_factor, **kw)
+ 
+     total_sched = learning_sched
+-    return total_sched
+\ No newline at end of file
++    return total_sched
+diff --git a/datamil/metagradients/core/vjp.py b/datamil/metagradients/core/vjp.py
+index bf4f120..1dbcc75 100644
+--- a/datamil/metagradients/core/vjp.py
++++ b/datamil/metagradients/core/vjp.py
+@@ -87,6 +87,16 @@ def replay_forward(saved_states, train_its, train_batcher, serialize_k,
+         # indices_by_batch.append(batch_indices)
+ 
+         curr_it = it + 1
++        checkpoint_path = os.environ.get('DATAMIL_FORWARD_CHECKPOINT')
++        if checkpoint_path and (curr_it % 100 == 0 or curr_it == train_its):
++            from datamil.metagradients.resume_state import save_state
++            save_state(checkpoint_path, state)
++            print('SAVED resumable forward step', curr_it, flush=True)
++        if os.environ.get('DATAMIL_DM_PROGRESS') == '1' and curr_it % 10 == 0:
++            import wandb
++            if wandb.run is not None:
++                wandb.log({'datamodel/forward_step': curr_it,
++                           'datamodel/forward_target': train_its})
+         if curr_it in save_iterations:
+             gpu_states.append((curr_it, state))
+ 
+diff --git a/datamil/metagradients/core/vjp_blocks.py b/datamil/metagradients/core/vjp_blocks.py
+index 695254c..4dfac20 100644
+--- a/datamil/metagradients/core/vjp_blocks.py
++++ b/datamil/metagradients/core/vjp_blocks.py
+@@ -67,9 +67,12 @@ def sample_loss_vjp_head(state, *, per_sample_loss, val_batcher, val_its):
+     acc = None
+     for _ in range(val_its):
+         batch, minibatches = next(iterator)
++        print('PROXY gradient batch start', n, 'batch_size', batch.bs, flush=True)
+         acc = minibatch_func(func, minibatches, acc=acc)
++        print('PROXY gradient batch dispatched', n, flush=True)
+         n += batch.bs
+ 
++    print('PROXY normalizing gradient leaves', n, flush=True)
+     g, primal = jax.tree_util.tree_map(partial(safe_div, y=n), acc)
+     print('>> VAL N IN PRIMAL:', n)
+     assert len(acc) == 2
+diff --git a/datamil/metagradients/do_libero_data_selection_parallel.py b/datamil/metagradients/do_libero_data_selection_parallel.py
+index 3658f01..a3101f5 100644
+--- a/datamil/metagradients/do_libero_data_selection_parallel.py
++++ b/datamil/metagradients/do_libero_data_selection_parallel.py
+@@ -4,6 +4,7 @@ import flax
+ import numpy as np
+ from copy import deepcopy
+ import tensorflow as tf
++tf.config.set_visible_devices([], 'GPU')
+ 
+ from functools import partial
+ from functools import cache
+@@ -41,7 +42,9 @@ def grad_from_store(deps, batch_indices):
+     # for i, bixs in enumerate(batch_indices):
+         # gradient[bixs] += flat_deps[i]
+     for batch_n, indices in batch_indices.items():
+-        gradient[indices] += flat_deps[batch_n]
++        # Multiple frames can share a horizon ID inside one batch. Fancy
++        # indexing += loses duplicate-index contributions; add.at sums them.
++        np.add.at(gradient, indices, flat_deps[batch_n])
+ 
+     return gradient
+ 
+@@ -95,6 +98,9 @@ def per_sample_loss_fn(params,
+         train=False,
+     )
+ 
++    if FLAGS.config.get('paper_weighted_proxy', False) and data_weights is None and 'weights' in data:
++        action_loss = action_loss * jax.numpy.reshape(data['weights'], action_loss.shape)
++
+     # if 'weights' in data:
+     #     weights = data['weights']
+     #     # weights = 2*(weights-1) + 1
+@@ -112,7 +118,11 @@ def data_selection_iter(data_weights: jax.numpy.array,
+                         checkpoint_path: str,
+                         job_id: int=0):
+ 
+-    initialize_compilation_cache()
++    cache_dir = os.environ.get('DATAMIL_DM_CACHE_DIR')
++    if cache_dir:
++        initialize_compilation_cache(cache_dir=cache_dir)
++    else:
++        initialize_compilation_cache()
+ 
+     # prevent tensorflow from using GPU memory since it's only used for data loading
+     tf.config.set_visible_devices([], "GPU")
+@@ -164,7 +174,7 @@ def data_selection_iter(data_weights: jax.numpy.array,
+         'selective_wd': True,
+         'dtype': jax.numpy.float32,
+         'factored_lr_wd': False,
+-        'anneal_type': 'linear',
++        'anneal_type': ('cosine' if FLAGS.config.get('paper_weighted_proxy', False) else 'linear'),
+         'eps_schedule': jax.tree_util.Partial(interp_from, steps=200,
+                                               eps0=1e-08, eps_root0=1e-08, space='geometric'),
+         'mom_schedule': jax.tree_util.Partial(interp_from_mom, steps=25, mom0=0.85,
+@@ -179,6 +189,14 @@ def data_selection_iter(data_weights: jax.numpy.array,
+         **OPTIMIZER_KWARGS,
+     )
+ 
++    forward_checkpoint = os.path.join(checkpoint_path, 'forward_state.pkl')
++    if FLAGS.config.get('paper_weighted_proxy', False) and os.path.exists(forward_checkpoint):
++        from datamil.metagradients.resume_state import restore_state
++        state0 = restore_state(forward_checkpoint, state0)
++        if int(state0.opt_state.count) > forward_its:
++            raise ValueError('Saved replay state exceeds the forward phase')
++        print('RESUME datamodel forward step', int(state0.opt_state.count), flush=True)
++
+     aux_datasets = {}
+     return_kw = False
+ 
+@@ -213,7 +231,10 @@ def data_selection_iter(data_weights: jax.numpy.array,
+     )
+     import time
+     s1 = time.time()
++    if FLAGS.config.get('paper_weighted_proxy', False):
++        os.environ['DATAMIL_FORWARD_CHECKPOINT'] = forward_checkpoint
+     ret = vjp_robodm(**vjp_kw)
++    os.environ.pop('DATAMIL_FORWARD_CHECKPOINT', None)
+     print('\n', '*'*20)
+     print('>> Done with forward pass', time.time()-s1)
+     print('*'*20, '\n')
+@@ -253,7 +274,18 @@ def data_selection_iter(data_weights: jax.numpy.array,
+         print(grad)
+ 
+     grad_path = os.path.join(checkpoint_path, 'datamodels.npy')
+-    np.save(grad_path, grad)
++    with open(grad_path + '.tmp', 'wb') as stream:
++        np.save(stream, grad)
++        stream.flush()
++        os.fsync(stream.fileno())
++    os.replace(grad_path + '.tmp', grad_path)
++    import wandb
++    if wandb.run is not None:
++        wandb.log({'proxy/validation_loss': float(final_ret['val_loss']),
++                   'proxy/primal': float(final_ret['primal']),
++                   'timing/datamodel_forward_seconds': s2 - s1,
++                   'timing/datamodel_backward_seconds': time.time() - s2,
++                   'datamodel/max_abs_influence': float(np.max(np.abs(grad)))})
+ 
+     return grad
+ 
+@@ -370,12 +402,46 @@ def create_include_index_perc():
+ 
+ def main(_):
+ 
++    if FLAGS.config.get('paper_weighted_proxy', False):
++        import faulthandler
++        faulthandler.enable()
++        if os.environ.get('DATAMIL_TRACE_STALL') == '1':
++            faulthandler.dump_traceback_later(120, repeat=True)
++
+     job_id = FLAGS.config.job_id
++    if FLAGS.config.get('paper_weighted_proxy', False) and FLAGS.config.folder_name == 'book-caddy':
++        smoke_marker = '/mnt/data/thanhpv/ldva/logs/datamil_paper_h15/gpu_smoke/datamodels/libero90_horizon/book-caddy-smoke/iter_0/complete.json'
++        if not os.path.exists(smoke_marker):
++            raise RuntimeError('Actual GPU metagradient smoke must pass before the 30-trial experiment')
+     meta_checkpoint_path = os.path.join(FLAGS.config.save_dir, FLAGS.config.dataset_kwargs.name, FLAGS.config.folder_name)
+ 
+     checkpoint_path = os.path.join(meta_checkpoint_path, f'iter_{job_id}')
+     os.makedirs(checkpoint_path, exist_ok=True)
+ 
++    if FLAGS.config.get('paper_weighted_proxy', False):
++        configuration_path = os.path.join(checkpoint_path, 'resume_config.json')
++        configuration = FLAGS.config.to_dict()
++        if os.path.exists(configuration_path):
++            with open(configuration_path) as stream:
++                if json.load(stream) != configuration:
++                    raise ValueError('Datamodel resume config mismatch; preserve outputs and start a new run')
++        else:
++            with open(configuration_path, 'w') as stream:
++                json.dump(configuration, stream, indent=2)
++                stream.flush()
++                os.fsync(stream.fileno())
++
++    import wandb
++    wandb.init(project=FLAGS.config.wandb.project,
++               entity=FLAGS.config.wandb.entity,
++               group=FLAGS.config.wandb.group,
++               id=f'datamil-paper-h15-t30-{FLAGS.config.folder_name}-iter{job_id}',
++               name=f'datamil-paper-h15-t30-{FLAGS.config.folder_name}-iter{job_id}', resume='allow',
++               config=FLAGS.config.to_dict(), mode='disabled' if FLAGS.debug else None)
++    import sys
++    wandb.config.update({'runtime/python': sys.executable,
++                         'runtime/xla_flags': os.environ.get('XLA_FLAGS','')}, allow_val_change=True)
++
+     if job_id == 0:
+         _, data_weights = make_replay_dataset(0, 1e5, None, train=True, return_dw_only=True)
+         data_weights = jax.numpy.concatenate(
+@@ -413,6 +479,19 @@ def main(_):
+     # candidate_grad = grad[1_000_000:]
+     # create_include_index(candidate_grad)
+     create_include_index_perc()
++    selected_grad = grad[1_000_000:]
++    wandb.log({'trial/completed': job_id + 1,
++               'datamodel/nonzero_clusters': int(np.count_nonzero(selected_grad)),
++               'datamodel/finite': int(np.isfinite(grad).all())})
++    if not np.isfinite(grad).all():
++        raise FloatingPointError('Nonfinite datamodel influences')
++    with open(os.path.join(checkpoint_path, 'complete.json.tmp'), 'w') as stream:
++        json.dump({'trial': job_id, 'complete': True, 'horizon': 15}, stream)
++        stream.flush()
++        os.fsync(stream.fileno())
++    os.replace(os.path.join(checkpoint_path, 'complete.json.tmp'),
++               os.path.join(checkpoint_path, 'complete.json'))
++    wandb.finish()
+     
+ if __name__ == '__main__':
+-    app.run(main)
+\ No newline at end of file
++    app.run(main)
+diff --git a/datamil/metagradients/make_libero_loader_mds.py b/datamil/metagradients/make_libero_loader_mds.py
+index 22666ea..a1b300e 100644
+--- a/datamil/metagradients/make_libero_loader_mds.py
++++ b/datamil/metagradients/make_libero_loader_mds.py
+@@ -2,6 +2,7 @@ import imp
+ import os
+ import types
+ import json
++from pathlib import Path
+ 
+ import jax
+ import jax.numpy as jnp
+@@ -17,6 +18,31 @@ from datamil.metagradients.core.dataloading import RoboDataset, RoboREPLAYBatch,
+ 
+ from streaming import StreamingDataLoader
+ 
++
++def runtime_loader_workers(configured):
++    """Avoid large prefetch/shared-memory pools on a smaller resumed allocation."""
++    override = os.environ.get('DATAMIL_LOADER_WORKERS')
++    if override is not None:
++        workers = int(override)
++        if workers < 0:
++            raise ValueError('DATAMIL_LOADER_WORKERS must be nonnegative')
++        return workers
++    try:
++        relative = Path('/proc/self/cgroup').read_text().strip().split(':', 2)[2]
++        current = Path('/sys/fs/cgroup' + relative)
++        for parent in (current, *current.parents):
++            limit = (parent/'memory.max').read_text().strip()
++            if limit != 'max' and int(limit) < 48 * 2**30:
++                print(f'DATALOADER_RUNTIME workers=0 (configured={configured}); cgroup RAM limit={limit}', flush=True)
++                import wandb
++                if wandb.run is not None:
++                    wandb.config.update({'runtime_loader_workers': 0,
++                                         'runtime_cgroup_ram_limit_bytes': int(limit)}, allow_val_change=True)
++                return 0
++    except (OSError, ValueError, IndexError):
++        pass
++    return configured
++
+ try:
+     from jax_smi import initialise_tracking  # type: ignore
+ 
+@@ -113,12 +139,13 @@ def make_replay_dataset(start_batch: int,
+             for k in batch[0].keys()
+         }
+ 
++    workers = runtime_loader_workers(FLAGS.config.num_workers)
+     dataloader = StreamingDataLoader(
+         dataset,
+         drop_last=train,
+         batch_size=batch_size,
+-        num_workers=FLAGS.config.num_workers,
+-        prefetch_factor=2,  # Optional: controls samples prefetched per worker
++        num_workers=workers,
++        prefetch_factor=2 if workers else None,
+         collate_fn=numpy_collate,
+     )
+ 
+@@ -181,12 +208,13 @@ def make_special_dataset(start_batch: int,
+             for k in batch[0].keys()
+         }
+ 
++    workers = runtime_loader_workers(FLAGS.config.num_workers)
+     dataloader = StreamingDataLoader(
+         dataset,
+         drop_last=True,
+         batch_size=batch_size,
+-        num_workers=FLAGS.config.num_workers,
+-        prefetch_factor=2,  # Optional: controls samples prefetched per worker
++        num_workers=workers,
++        prefetch_factor=2 if workers else None,
+         collate_fn=numpy_collate,
+     )
+ 
+@@ -267,9 +295,12 @@ def make_replay_iterators(
+ 
+                 batch = unflatten(batch, 'dot')
+ 
++                actual_bs = (batch['index'].shape[0] if FLAGS.config.get('paper_weighted_proxy', False)
++                             else batch_size)
++
+                 replay_batch = RoboREPLAYBatch(
+                     batch=batch,
+-                    bs=batch_size,
++                    bs=actual_bs,
+                     minibs=minibs,
+                     sharding=sharding if mode=='train' else None,
+                     state=data_iterator.state_dict(),
+@@ -359,4 +390,4 @@ def make_split_loader_and_data_weights(start_batch: int,
+         mode=mode,
+         global_seed=seed,
+         batch_size=batch_size
+-    )
+\ No newline at end of file
++    )
+diff --git a/datamil/models/make_octo_model.py b/datamil/models/make_octo_model.py
+index f17d99a..8399553 100644
+--- a/datamil/models/make_octo_model.py
++++ b/datamil/models/make_octo_model.py
+@@ -70,6 +70,10 @@ def make_model(data_batcher: Callable):
+         example_batch = batch.batch
+         break
+ 
++    if FLAGS.config.get('model_init_batch_size', None):
++        size = FLAGS.config.model_init_batch_size
++        example_batch = jax.tree_util.tree_map(lambda value: value[:size], example_batch)
++
+     if FLAGS.config.get('use_proprio', False):
+         from octo.model.components.tokenizers import LowdimObsTokenizer
+         config["model"]["observation_tokenizers"]["proprio"] = ModuleSpec.create(
+@@ -167,4 +171,4 @@ def make_model(data_batcher: Callable):
+     frozen_params = flax.traverse_util.unflatten_dict(frozen_params)
+     trainable_params = flax.traverse_util.unflatten_dict(trainable_params)
+ 
+-    return model, frozen_params, trainable_params
+\ No newline at end of file
++    return model, frozen_params, trainable_params
+diff --git a/rlds_utils/rlds_dataset_builders/libero90_horizon/libero90_horizon.py b/rlds_utils/rlds_dataset_builders/libero90_horizon/libero90_horizon.py
+index 59a2509..afd0602 100644
+--- a/rlds_utils/rlds_dataset_builders/libero90_horizon/libero90_horizon.py
++++ b/rlds_utils/rlds_dataset_builders/libero90_horizon/libero90_horizon.py
+@@ -8,8 +8,8 @@ import tensorflow_datasets as tfds
+ import tensorflow_hub as hub
+ from tqdm import tqdm
+ 
+-HORIZON=30 # 15
+-MIN_H = 10 # 8
++HORIZON=int(os.environ.get('DATAMIL_CLUSTER_HORIZON', '30'))
++MIN_H = int(os.environ.get('DATAMIL_CLUSTER_MIN_TAIL', '10'))
+ 
+ def chunk_traj(traj, chunk_size):
+     actions = traj['actions'][:]
+@@ -26,16 +26,17 @@ def get_chunked_idxs(traj, chunk_size):
+     actions = traj['actions'][:]
+     data_size = actions.shape[0]
+ 
+-    total_chunks = 0
+-    traj_idxs = np.empty((data_size,), dtype=np.int32)
+-    for i in range(0, data_size-chunk_size, chunk_size):
+-        traj_idxs[i:i+chunk_size] = total_chunks
+-        total_chunks += 1
+-
+-    if i + chunk_size < data_size:
+-        # print(data_size-chunk_size, data_size)
+-        traj_idxs[min(i+chunk_size, data_size-MIN_H):] = total_chunks
+-        total_chunks += 1
++    if data_size == 0 or chunk_size <= 0:
++        raise ValueError('Expected a nonempty trajectory and positive horizon')
++    # Same tail convention as the released builder, also defined for short
++    # demonstrations and exact multiples of the horizon.
++    traj_idxs = np.minimum(np.arange(data_size) // chunk_size,
++                          max(0, (data_size - 1) // chunk_size)).astype(np.int32)
++    tail = data_size % chunk_size
++    if data_size > chunk_size and 0 < tail < MIN_H:
++        last = (data_size - 1) // chunk_size
++        traj_idxs[max(0, data_size - MIN_H):] = last
++    total_chunks = int(traj_idxs.max()) + 1
+     return total_chunks, traj_idxs
+ 
+ class Libero90Horizon(tfds.core.GeneratorBasedBuilder):
+diff --git a/scripts/cotraining.py b/scripts/cotraining.py
+index 4acda60..16566e5 100644
+--- a/scripts/cotraining.py
++++ b/scripts/cotraining.py
+@@ -2,7 +2,10 @@ import datetime
+ from functools import partial
+ import imp
+ import os
++os.environ['USE_TORCH'] = '0'
++os.environ['USE_FLAX'] = '1'
+ import json
++import time
+ import numpy as np
+ 
+ from absl import app, flags, logging
+@@ -42,6 +45,8 @@ FLAGS = flags.FLAGS
+ 
+ flags.DEFINE_string("name", "experiment", "Experiment name.")
+ flags.DEFINE_bool("debug", False, "Debug config (no wandb logging)")
++flags.DEFINE_string('resume_dir', None, 'Existing run directory with full optimizer/RNG state.')
++flags.DEFINE_integer('resume_smoke_steps', 0, 'For validation only: stop after this many resumed steps.')
+ 
+ config_flags.DEFINE_config_file(
+     "config",
+@@ -105,13 +110,26 @@ def main(_):
+         name=name,
+         time=datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+     )
++    if FLAGS.resume_dir:
++        resume_dir = os.path.abspath(FLAGS.resume_dir)
++        with open(os.path.join(resume_dir, 'finetune_config.json')) as stream:
++            saved_config = json.load(stream)
++        for key in ['seed', 'batch_size', 'num_steps', 'window_size', 'action_chunks']:
++            if saved_config[key] != FLAGS.config[key]:
++                raise ValueError(f'Resume configuration mismatch: {key}')
++        wandb_id = os.path.basename(resume_dir)
+     wandb.init(
+         config=FLAGS.config.to_dict(),
+         id=wandb_id,
+         name=name,
++        resume='allow' if FLAGS.resume_dir else None,
+         mode="disabled" if FLAGS.debug else None,
+         **FLAGS.config.wandb,
+     )
++    wandb.config.update(dict(
++        runtime_jax_memory_fraction=os.environ.get('XLA_PYTHON_CLIENT_MEM_FRACTION'),
++        runtime_jax_preallocate=os.environ.get('XLA_PYTHON_CLIENT_PREALLOCATE'),
++        runtime_vram_target=os.environ.get('REPRO_VRAM_TARGET')), allow_val_change=True)
+ 
+     #########
+     #
+@@ -227,7 +245,9 @@ def main(_):
+         train=True,
+         shuffle_buffer_size=FLAGS.config.shuffle_buffer_size,
+         batch_size=FLAGS.config.batch_size,
+-        balance_weights=False
++        balance_weights=False,
++        num_parallel_calls=FLAGS.config.get('data_parallel_calls', tf.data.AUTOTUNE),
++        num_parallel_reads=FLAGS.config.get('data_parallel_reads', tf.data.AUTOTUNE),
+     )
+ 
+     def shard(batch):
+@@ -291,7 +311,7 @@ def main(_):
+     #########
+ 
+     if FLAGS.config.save_dir is not None:
+-        save_dir = tf.io.gfile.join(
++        save_dir = FLAGS.resume_dir or tf.io.gfile.join(
+             FLAGS.config.save_dir,
+             FLAGS.config.wandb.project,
+             FLAGS.config.wandb.group or "",
+@@ -300,6 +320,25 @@ def main(_):
+         wandb.config.update(dict(save_dir=save_dir), allow_val_change=True)
+         logging.info("Saving to %s", save_dir)
+         save_callback = SaveCallback(save_dir)
++        start_step = 0
++        if FLAGS.resume_dir:
++            from flax.training import orbax_utils
++            latest = save_callback.state_checkpointer.latest_step()
++            if latest is None:
++                raise ValueError('No full state checkpoint available for resume')
++            train_state = save_callback.state_checkpointer.restore(latest,
++                items=train_state,
++                restore_kwargs={'restore_args': orbax_utils.restore_args_from_target(train_state)})
++            start_step = int(jax.device_get(train_state.step))
++            if start_step != latest:
++                raise ValueError(f'Checkpoint step mismatch: {start_step} != {latest}')
++            # The original run consumed one example batch before training.
++            # Replay the seeded TF stream without repeating optimizer updates.
++            train_data_iter = map(shard, map(process_batch,
++                train_data.skip(start_step + 1).iterator(prefetch=tf.data.AUTOTUNE)))
++            wandb.config.update(dict(resumed_from_step=start_step,
++                resume_data_order='seeded TF stream skipped; bitwise replay not yet verified'), allow_val_change=True)
++            print(f'RESUMED full model/optimizer/RNG step={start_step}', flush=True)
+ 
+         # Add window_size to top of config, to make eval easier
+         new_config = ConfigDict(model.config)
+@@ -312,6 +351,7 @@ def main(_):
+         ) as config_file:
+             config_file.write(FLAGS.config.to_json_best_effort())
+     else:
++        start_step = 0
+         save_dir = None
+         save_callback = SaveCallback(None)
+         logging.warning("save_dir not passed in, not saving checkpoints")
+@@ -375,12 +415,26 @@ def main(_):
+         return new_state, info
+ 
+     def wandb_log(info, step):
+-        wandb.log(flatten_dict(info, sep="/"), step=step)
++        metrics = flatten_dict(info, sep="/")
++        stats = jax.devices()[0].memory_stats() or {}
++        for key in ['bytes_in_use', 'peak_bytes_in_use']:
++            if key in stats:
++                metrics['gpu/' + key + '_gb'] = stats[key] / 2**30
++        # Keep numerical results independent of W&B connectivity and plotting.
++        if save_dir is not None:
++            with open(os.path.join(save_dir, 'training_metrics.jsonl'), 'a') as stream:
++                stream.write(json.dumps(dict(step=step, **metrics),
++                    default=lambda value: np.asarray(value).tolist()) + '\n')
++                stream.flush()
++                os.fsync(stream.fileno())
++        wandb.log(metrics, step=step)
+ 
+     timer = Timer()
++    training_started = time.monotonic()
++    stop_step = min(int(FLAGS.config.num_steps), start_step + FLAGS.resume_smoke_steps) if FLAGS.resume_smoke_steps else int(FLAGS.config.num_steps)
+     for i in tqdm.tqdm(
+-        range(0, int(FLAGS.config.num_steps)),
+-        total=int(FLAGS.config.num_steps),
++        range(start_step, stop_step),
++        total=stop_step - start_step,
+         dynamic_ncols=True,
+     ):
+         timer.tick("total")
+@@ -396,13 +450,28 @@ def main(_):
+         if (i + 1) % FLAGS.config.log_interval == 0:
+             update_info = jax.device_get(update_info)
+             wandb_log(
+-                {"training": update_info, "timer": timer.get_average_times()}, step=i
++                {"training": update_info, "timer": timer.get_average_times(),
++                 "progress": {"elapsed_wall_seconds": time.monotonic() - training_started,
++                              "completed_steps": i + 1}}, step=i
+             )
+ 
+         if (i + 1) % FLAGS.config.save_interval == 0 and save_dir is not None:
+             logging.info("Saving checkpoint...")
+             save_callback(train_state, i + 1)
+ 
++    if FLAGS.resume_smoke_steps and stop_step > start_step:
++        save_callback(train_state, stop_step)
++
++    if save_dir is not None:
++        artifact = wandb.Artifact(wandb.run.name + '-metadata', type='training-metadata')
++        for filename in ['training_metrics.jsonl', 'finetune_config.json', 'config.json', 'dataset_statistics.json']:
++            path = os.path.join(save_dir, filename)
++            if os.path.isfile(path):
++                artifact.add_file(path)
++        artifact.add_file(__file__, name='source/cotraining.py')
++        wandb.log_artifact(artifact)
++    wandb.finish()
++
+ 
+ if __name__ == "__main__":
+     app.run(main)
+diff --git a/scripts/libero_rlds_to_mds.py b/scripts/libero_rlds_to_mds.py
+index 9b5a97a..de11c10 100644
+--- a/scripts/libero_rlds_to_mds.py
++++ b/scripts/libero_rlds_to_mds.py
+@@ -44,7 +44,7 @@ columns = {
+     'action': 'ndarray:float32',
+     'dataset_name': 'bytes',
+ 
+-    # 'weights': 'ndarray:float32',
++    'weights': 'ndarray:float32',
+     'index': 'int64',
+ 
+     'observation.image_primary': 'ndarray:uint8',
+@@ -178,6 +178,8 @@ def main(config, out_path):
+     writer = None
+     for item in tqdm(dataset):
+ 
++        item.setdefault('weights', np.array(1.0, dtype=np.float32))
++
+         index = item['index'][0]
+ 
+         if index != prev_index:
+@@ -190,6 +192,8 @@ def main(config, out_path):
+         
+         item_flat = {}
+         for k, v in flatten(item, 'dot').items():
++            if k == 'weights':
++                v = np.atleast_1d(v)
+             if k in ['dataset_name', 'task.language_instruction']:
+                 item_flat[k] = v
+             else:
+@@ -226,4 +230,20 @@ if __name__ == "__main__":
+     config['data_dir'] = os.path.dirname(args.data_path)
+     config['name'] = os.path.basename(args.data_path)
+ 
+-    main(config, args.out_path)
+\ No newline at end of file
++    if os.environ.get('DATAMIL_PAPER_WEIGHTED_PROXY') == '1':
++        original_transform = config['standardize_fn']
++        def weighted_transform(trajectory):
++            trajectory = original_transform(trajectory)
++            gripper = trajectory['action'][:, -1]
++            # Paper D.1: double pre-grasp states, not release/open events.
++            # Dataset convention: normalized gripper 1=open, 0=closed.
++            # The released helper supplies the 20-step lookback length.
++            transitions = (gripper[:-1] > 0.5) & (gripper[1:] <= 0.5)
++            positions = tf.range(tf.shape(gripper)[0])
++            events = tf.boolean_mask(positions[:-1], transitions)
++            preceding = tf.reduce_any((positions[:, None] <= events[None, :]) &
++                                      (positions[:, None] > events[None, :] - 20), axis=1)
++            trajectory['weights'] = tf.where(preceding, 2.0, 1.0)
++            return trajectory
++        config['standardize_fn'] = weighted_transform
++    main(config, args.out_path)
+
+diff --git a/datamil/metagradients/resume_state.py b/datamil/metagradients/resume_state.py
+new file mode 100644
+--- /dev/null
++++ b/datamil/metagradients/resume_state.py
+@@ -0,0 +1,29 @@
++"""Atomic array-only replay state, reconstructed against a fresh optimizer tree."""
++import os
++from pathlib import Path
++import pickle
++import jax
++import numpy as np
++
++def save_state(path, state):
++    path=Path(path)
++    leaves=jax.tree_util.tree_leaves(state)
++    arrays=[np.asarray(jax.device_get(x)) for x in leaves]
++    value=dict(step=int(state.opt_state.count),
++               shapes=[x.shape for x in arrays],dtypes=[str(x.dtype) for x in arrays],leaves=arrays)
++    temporary=path.with_suffix('.tmp')
++    with temporary.open('wb') as f:
++        pickle.dump(value,f,protocol=5); f.flush(); os.fsync(f.fileno())
++    temporary.replace(path)
++
++def restore_state(path, template):
++    # Only load files generated by this trusted local run.
++    with Path(path).open('rb') as f: value=pickle.load(f)
++    leaves,definition=jax.tree_util.tree_flatten(template)
++    assert value['shapes']==[np.shape(x) for x in leaves], 'Replay state shape mismatch'
++    expected_dtypes=[str(x.dtype) if hasattr(x,'dtype') else
++                     str(np.asarray(jax.device_get(jax.device_put(x))).dtype) for x in leaves]
++    assert value['dtypes']==expected_dtypes, 'Replay state dtype mismatch'
++    state=jax.tree_util.tree_unflatten(definition,value['leaves'])
++    assert int(state.opt_state.count)==value['step']
++    return state
+
+diff --git a/scripts/configs/paper_h15_cotrain_config.py b/scripts/configs/paper_h15_cotrain_config.py
+new file mode 100644
+--- /dev/null
++++ b/scripts/configs/paper_h15_cotrain_config.py
+@@ -0,0 +1,21 @@
++"""Paper horizon-15 selection, shared statistics, otherwise released policy config."""
++import os
++from ml_collections import ConfigDict
++from scripts.configs.cotrain_libero_config import get_config as released_config
++
++def get_config(config_string=''):
++    cfg = released_config(config_string)
++    for dataset in cfg.dataset_kwargs_list:
++        dataset['data_dir'] = (os.environ['DATAMIL_PAPER_TF'] if dataset['name'] == 'libero90_horizon'
++                               else os.path.join(os.environ['DATA_DIR'], 'tf'))
++        dataset['dataset_statistics'] = os.environ['DATASET_STATISTICS']
++    cfg.traj_transform_kwargs.filter_selected_frames = True
++    cfg.data_parallel_calls = 2
++    cfg.data_parallel_reads = 2
++    cfg.save_interval = 1000
++    cfg.wandb.project = 'paper-reproduction'
++    cfg.wandb.entity = 'hust_edu_vn'
++    cfg.wandb.group = 'datamil-paper-h15-t30-policy'
++    cfg.pretrained_path = ''
++    cfg.save_dir = ''
++    return ConfigDict(cfg.to_dict())
+
+diff --git a/scripts/configs/paper_h15_dm_config.py b/scripts/configs/paper_h15_dm_config.py
+new file mode 100644
+--- /dev/null
++++ b/scripts/configs/paper_h15_dm_config.py
+@@ -0,0 +1,28 @@
++"""LIBERO paper Table 4: 2100 learner steps, last 100 differentiated."""
++import os
++from ml_collections import ConfigDict
++from scripts.configs.dm_libero_config import get_config as released_config
++
++def get_config(config_string=''):
++    cfg = released_config(config_string)
++    cfg.dataset_kwargs.data_dir = os.environ['DATAMIL_PAPER_MDS']
++    cfg.val_dataset_kwargs.data_dir = os.environ['DATAMIL_PAPER_MDS']
++    cfg.num_steps = 2100
++    cfg.optimizer.learning_rate.warmup_steps = 84
++    cfg.num_workers = 4
++    # Effective batch remains 512. Tile it to fit one H100 alongside AMF;
++    # the released replay code sums gradients across these microbatches.
++    cfg.mini_batch_size = 128
++    cfg.mini_val_batch_size = 128
++    cfg.model_init_batch_size = 8
++    cfg.wandb.project = 'paper-reproduction'
++    cfg.wandb.entity = 'hust_edu_vn'
++    cfg.wandb.group = 'datamil-paper-h15-t30-datamodel'
++    cfg.pretrained_path = ''
++    cfg.save_dir = ''
++    cfg.job_id = 0
++    cfg.folder_name = 'book-caddy'
++    cfg.dataset_kwargs.name = 'libero90_horizon'
++    cfg.val_dataset_kwargs.name = os.environ['DATAMIL_TARGET']
++    cfg.paper_weighted_proxy = True
++    return ConfigDict(cfg.to_dict())
+
+diff --git a/scripts/configs/reproduction_cotrain_config.py b/scripts/configs/reproduction_cotrain_config.py
+new file mode 100644
+--- /dev/null
++++ b/scripts/configs/reproduction_cotrain_config.py
+@@ -0,0 +1,23 @@
++"""Released configuration with explicit cached stats and bounded CPU loaders."""
++from pathlib import Path
++from ml_collections import ConfigDict
++from scripts.configs.cotrain_libero_config import get_config as released_config
++
++def get_config(config_string=''):
++    cfg = released_config(config_string)
++    for dataset in cfg.dataset_kwargs_list:
++        files = list((Path(dataset['data_dir'])/dataset['name']/'0.1.0').glob('dataset_statistics_*.json'))
++        if len(files) != 1:
++            raise ValueError(f"Expected exactly one cached statistics file: {dataset['name']}: {files}")
++        dataset['dataset_statistics'] = str(files[0])
++    cfg.data_parallel_calls = 2
++    cfg.data_parallel_reads = 2
++    cfg.wandb.project = 'paper-reproduction'
++    cfg.wandb.entity = 'hust_edu_vn'
++    cfg.wandb.group = 'datamil-fresh-training'
++    # Keep CLI-overridable placeholders typed after resolving references.
++    cfg.pretrained_path = ''
++    cfg.save_dir = ''
++    # Resolve shared FieldReferences: changing the pilot's stopping step must
++    # not silently change the paper's 10k-step learning-rate schedule.
++    return ConfigDict(cfg.to_dict())
